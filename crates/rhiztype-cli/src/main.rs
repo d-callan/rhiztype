@@ -129,7 +129,7 @@ fn main() {
     if let Some(f) = csv_file.as_mut() {
         let mut csv_lines = Vec::with_capacity(results.len() + 1);
         csv_lines.push(
-            "sequence_id,raw_length_nt,mapped_coding_nt,hxb2_span_start,hxb2_span_end,locus_scope,alignment_mode,descriptive_name,structural_formula,backbone_trunk,n_segments,n_breakpoints,hxb2_barcode,ci_bracketed_barcode,compendium_matches".to_string(),
+            "sequence_id,raw_length_nt,mapped_coding_nt,hxb2_span_start,hxb2_span_end,locus_scope,alignment_mode,called_lineage,called_category,call_identity_pct,call_stem_snps,call_p_value,epidemiological_formula,epidemiological_barcode,basal_formula,basal_barcode,descriptive_name,structural_formula,backbone_trunk,n_segments,n_breakpoints,hxb2_barcode,ci_bracketed_barcode,compendium_matches".to_string(),
         );
         for r in &results {
             let matches_joined = r
@@ -138,8 +138,17 @@ fn main() {
                 .map(|m| format!("{} ({})", m.label, m.descriptive_name))
                 .collect::<Vec<_>>()
                 .join("; ");
+            let (id_str, stem_str, p_str) = if let Some(sup) = &r.call_support {
+                (
+                    format!("{:.1}", sup.identity_pct),
+                    format!("{}", sup.net_stem_snps),
+                    format!("{:.2e}", sup.p_value),
+                )
+            } else {
+                (String::new(), String::new(), String::new())
+            };
             csv_lines.push(format!(
-                "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}",
+                "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}",
                 csv_quote(&r.sequence_id, true),
                 r.raw_length_nt,
                 r.mapped_coding_nt,
@@ -147,6 +156,15 @@ fn main() {
                 r.hxb2_span_end,
                 r.locus_scope,
                 csv_quote(&r.alignment_mode, false),
+                csv_quote(&r.called_lineage, false),
+                csv_quote(&r.called_category, false),
+                id_str,
+                stem_str,
+                p_str,
+                csv_quote(&r.epidemiological_formula, false),
+                csv_quote(&r.epidemiological_barcode, false),
+                csv_quote(&r.basal_formula, false),
+                csv_quote(&r.basal_barcode, false),
                 csv_quote(&r.descriptive_name, false),
                 csv_quote(&r.structural_formula, false),
                 r.backbone_trunk,
@@ -190,8 +208,21 @@ fn main() {
                 "  Alignment / Scope   : {} | {} (HXB2 {}..{}, {} mapped coding nt)\n",
                 r.alignment_mode, r.locus_scope, r.hxb2_span_start, r.hxb2_span_end, r.mapped_coding_nt
             ));
-            out.push_str(&format!("  Descriptive Formula : {}\n", r.descriptive_name));
-            out.push_str(&format!("  HXB2 Barcode        : {}\n", r.hxb2_barcode));
+            if let Some(sup) = &r.call_support {
+                out.push_str(&format!(
+                    "  Called Lineage      : {} [{}] ({:.1}% id, {:+} stem SNPs, p={:.2e})\n",
+                    r.called_lineage, r.called_category, sup.identity_pct, sup.net_stem_snps, sup.p_value
+                ));
+            } else {
+                out.push_str(&format!(
+                    "  Called Lineage      : {} [{}]\n",
+                    r.called_lineage, r.called_category
+                ));
+            }
+            out.push_str(&format!("  Epidemiological Map : {}\n", r.epidemiological_formula));
+            out.push_str(&format!("  Epidemiological BC  : {}\n", r.epidemiological_barcode));
+            out.push_str(&format!("  Basal Ancestral Map : {}\n", r.descriptive_name));
+            out.push_str(&format!("  Basal HXB2 Barcode  : {}\n", r.hxb2_barcode));
             out.push_str(&format!("  CI-Bracketed Map    : {}\n", r.ci_bracketed_barcode));
             let match_strs: Vec<String> = r
                 .matches

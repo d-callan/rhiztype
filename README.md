@@ -13,16 +13,20 @@
    - **Pre-aligned inputs** mapped to HXB2 (`9,719 nt`), HXB2 coding span (`8,628 nt`, `HXB2 790–9417`), or the LANL 2023 HIV-1 Reference Compendium MSA (`11,531 columns`) are projected directly in $O(L)$ time.
    - **Unaligned sequences** (complete genomes or partial amplicons; at least $100\text{ nt}$ of usable coding positions are required, counted as unambiguous mapped coding positions before hypervariable-loop masking, not raw input length) are automatically aligned to HXB2 coordinates using a two-stage **15-mer / 11-mer anchor seed hash + collinear sparse dynamic programming chain + banded Needleman-Wunsch** aligner against the Group M basal trunk ensemble.
 
-2. **Scrubbed Basal Reference Panel (`13 Trunks + ?E`)**
-   - Screens queries directly against the 13 scrubbed Group M basal reference trunks (`A1, A2, A6, B, C, D, F1, F2, G0, H, J, K, L`)—with the 12 historical reference-panel contaminations masked out—plus an **unpolarized ancestral root channel** and the unsampled `CRF01_AE` `vif..nef` (`?E`) trunk (`HXB2 5097–9417`).
-   - Resolves deep-branching second-generation CRFs (`CRF01_AE`, `CRF02_AG`, `CRF06_cpx`, `CRF11_cpx`, `CRF63_02A6`, etc.) into their elementary basal building blocks without recursive label nesting.
+2. **Two-Tier Reference Panel & Guarded Certified Lineage Calling**
+   - **Tier 1 (Alignment + Dual Segmentation):** Retains the 14-trunk ancestral deconvolution basis (`A1, A2, A6, B, C, D, F1, F2, G0, H, J, K, L, ?E`, indexed alongside 5 major divergent founders `CRF01_AE, CRF02_AG, Subtype_G, CRF06_cpx, CRF07_BC` for higher alignment recall) and adds a 25-state epidemiological Viterbi panel (`13` pure subtypes with `G = Subtype_G` + `12` founder CRFs) to resolve second-generation URFs (e.g., `CRF01_AE[B:RT]@pol`).
+   - **Tier 2 (Certified Clade Caller, `165` Profiles):** Screens queries against `139` verified LANL CRFs, `6` collapsed-stem CRFs, `5` derived pure subtypes/sub-subtypes (`G, A3, A4, A7, A8`), and `15` novel circulating CRFs (`NOVEL_CRF_01..15`) guarded by:
+     1. Donor-tract completeness & window distinguishability;
+     2. Recombination-DAG parental distinguishability;
+     3. Binomial clade-stem synapomorphy testing against the closest pure basal subtype (excluding `?E`);
+     4. Residual breakpoint Kadane scan rejecting second-generation URFs.
 
 3. **Hypervariable Loop Shield & Local $2 \times 2$ Fisher Exact Breakpoint Verification**
    - Automatically masks length-polymorphic hypervariable loops (`gp120` V1–V5 and `gag` p6 PTAP duplication hotspots) before segmentation so alignment indel noise never triggers false mosaic calls, while preserving all coding positions across `pol` (`PR`, `RT`, `IN`).
    - Evaluates every candidate recombination junction via a one-sided $2 \times 2$ Fisher's exact test ($p < 10^{-4}$ default) and a minimum informative-SNP support floor ($n_{11}, n_{22} \ge 5$), reporting informative-site plateau brackets (`[CI:low-high]`: nearest flanking informative sites; not a coverage-probability CI; may be one-sided or zero-width at junctions with `?E`/unattributed segments). With perfect separation, the default $p < 10^{-4}$ requires roughly $\ge 8$ informative sites per side (5|5 gives $p \approx 4\times10^{-3}$), so the $n_{11}, n_{22} \ge 5$ floor is necessary but not sufficient. Junctions involving the unattributed (ghost) state test novel-mutation density, with the known trunk's matches as the comparison row, rather than the pairwise informative-SNP count.
 
-4. **Dual-Layer Coordinate Nomenclature & 200-Lineage Compendium Matching**
-   - Outputs both human-readable **Descriptive Structural Formulas** (e.g., `A1[?E:vif..nef]`, `C[B:gag.CA..RT+vif..vpr]`, `B[F1:RT]@pol`) and machine-readable **HXB2 Coordinate Barcodes** (`A1:790-5096|?E:5097-9417`), cross-referenced against 200 cataloged lineages (162 LANL subtypes/CRFs + 38 novel epidemiologically circulating full-genome, `pol`, and `env` lineages).
+4. **Dual Output Schema & 200-Lineage Compendium Matching**
+   - Reports both **epidemiological classification** (`called_lineage`, `called_category`, `call_support`, `epidemiological_formula`, `epidemiological_barcode`, `epidemiological_segments`) and **14-trunk ancestral deconvolution** (`basal_formula`/`descriptive_name`, `basal_barcode`/`hxb2_barcode`, `structural_formula`, `backbone_trunk`, `segments`, `breakpoints`), cross-referenced against 200 cataloged lineages.
 
 ---
 

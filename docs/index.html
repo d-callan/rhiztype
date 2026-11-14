@@ -480,10 +480,10 @@
     <header>
       <div>
         <div class="brand-title">
-          RhizType <span class="brand-badge">Rust + WASM v0.1</span>
+          RhizType <span class="brand-badge">Rust + WASM v0.2</span>
         </div>
         <div class="subtitle">
-          HXB2-Anchored HIV-1 Group M Subtyping, Mosaic Deconvolution &amp; Breakpoint Verification (Aligned or Unaligned FASTA)
+          Two-Tier HXB2-Anchored HIV-1 Group M Subtyping, Certified CRF Calling, Mosaic Deconvolution &amp; Breakpoint Verification (Aligned or Unaligned FASTA)
         </div>
       </div>
       <div class="nav-tabs">
@@ -644,6 +644,38 @@
       "Unattributed": "#333333"
     };
 
+    const FOUNDER_COLORS = {
+      "G": "#F0E442",
+      "A3": "#3585b8",
+      "A4": "#4296c9",
+      "A7": "#2b73a8",
+      "A8": "#4ba4d8",
+      "CRF01_AE": "#c93b2b",
+      "CRF02_AG": "#2e8b57",
+      "CRF06_cpx": "#6a4c93",
+      "CRF07_BC": "#1982c4",
+      "CRF08_BC": "#3d9970",
+      "CRF11_cpx": "#8a5a44",
+      "CRF12_BF": "#b56576",
+      "CRF13_cpx": "#7b6d8d",
+      "CRF15_01B": "#e07a5f",
+      "CRF33_01B": "#d95f02",
+      "CRF55_01B": "#984ea3",
+      "CRF63_02A6": "#1b9e77"
+    };
+
+    function getLineageColor(trk) {
+      if (TRUNK_COLORS[trk]) return TRUNK_COLORS[trk];
+      if (FOUNDER_COLORS[trk]) return FOUNDER_COLORS[trk];
+      let h = 2166136261 >>> 0;
+      for (let i = 0; i < trk.length; i++) {
+        h ^= trk.charCodeAt(i);
+        h = Math.imul(h, 16777619) >>> 0;
+      }
+      const hue = h % 360;
+      return `hsl(${hue}, 58%, 42%)`;
+    }
+
     const HXB2_GENES = [
       { id: "gag", start: 790, end: 2292 },
       { id: "pol", start: 2085, end: 5096 },
@@ -698,8 +730,8 @@
         const e = parseInt(eStr, 10);
         const x = Math.max(0, ((s - codingStart) / codingSpan) * width);
         const w = Math.max(2, ((e - s + 1) / codingSpan) * width);
-        const col = TRUNK_COLORS[trk] || '#666';
-        const textColor = (trk === 'G0') ? '#111' : '#fff';
+        const col = getLineageColor(trk);
+        const textColor = (trk === 'G0' || trk === 'G') ? '#111' : '#fff';
         const label = w > 34 ? `<text x="${x + w / 2}" y="17" fill="${textColor}" font-size="10" font-weight="700" font-family="monospace" text-anchor="middle">${escapeHtml(trk)}</text>` : '';
         rects += `<g><rect x="${x.toFixed(1)}" y="3" width="${w.toFixed(1)}" height="20" fill="${col}" stroke="#111" stroke-width="0.6" rx="1.5"><title>${escapeHtml(trk)}: HXB2 ${s}..${e} (${e - s + 1} nt)</title></rect>${label}</g>`;
       }
@@ -764,10 +796,12 @@
       }
       const elapsed = performance.now() - t0;
 
-      const nUnclass = lastResults.filter(r => r.n_segments === 0).length;
+      const nUnclass = lastResults.filter(r => r.n_segments === 0 || r.called_category === 'Unclassifiable').length;
+      const nUrf = lastResults.filter(r => r.called_category === 'URF').length;
+      const nClonalEpi = lastResults.filter(r => r.n_segments !== 0 && r.called_category !== 'URF' && r.called_category !== 'Unclassifiable').length;
       document.getElementById('statCount').textContent = lastResults.length;
-      document.getElementById('statClonal').textContent = lastResults.filter(r => r.n_segments !== 0 && r.is_clonal).length;
-      document.getElementById('statMosaic').textContent = lastResults.filter(r => r.n_segments !== 0 && !r.is_clonal).length;
+      document.getElementById('statClonal').textContent = nClonalEpi;
+      document.getElementById('statMosaic').textContent = nUrf;
       document.getElementById('statUnclassifiable').textContent = nUnclass;
       document.getElementById('statTime').textContent = `${elapsed.toFixed(1)} ms`;
 
@@ -782,11 +816,20 @@
         const card = document.createElement('div');
         card.className = 'seq-card';
 
-        const typePill = r.n_segments === 0
+        const cat = r.called_category || (r.is_clonal ? 'Pure_Subtype' : 'URF');
+        const lin = r.called_lineage || r.backbone_trunk;
+        const typePill = (r.n_segments === 0 || cat === 'Unclassifiable')
           ? `<span class="pill pill-scope">Unclassifiable</span>`
-          : r.is_clonal
-          ? `<span class="pill pill-clonal">Clonal Basal Subtype (${escapeHtml(r.backbone_trunk)})</span>`
-          : `<span class="pill pill-mosaic">Mosaic Recombinant (${r.n_breakpoints} Breakpoint${r.n_breakpoints === 1 ? '' : 's'})</span>`;
+          : (cat === 'URF')
+          ? `<span class="pill pill-mosaic">URF (${r.n_breakpoints} Basal Breakpoint${r.n_breakpoints === 1 ? '' : 's'})</span>`
+          : (cat === 'Certified_CRF' || cat === 'Novel_Circulating_CRF')
+          ? `<span class="pill pill-clonal">${escapeHtml(lin)} [${escapeHtml(cat.replace(/_/g, ' '))}]</span>`
+          : `<span class="pill pill-clonal">Pure Subtype (${escapeHtml(lin)})</span>`;
+
+        const sup = r.call_support;
+        const supportSummary = sup
+          ? `${escapeHtml(lin)} &mdash; ${sup.identity_pct.toFixed(1)}% id, ${sup.net_stem_snps >= 0 ? '+' : ''}${sup.net_stem_snps} stem SNPs, p=${sup.p_value.toExponential(1)} <span style="color:var(--text-tertiary)">(${escapeHtml(sup.note)})</span>`
+          : escapeHtml(lin);
 
         const matchBadges = r.matches.map(m => `<strong>${escapeHtml(m.label)}</strong> <span style="color:var(--text-tertiary)">[${escapeHtml(m.match_type)}]</span>`).join(' &bull; ');
 
@@ -829,6 +872,17 @@
           </tr>
         `).join('');
 
+        const epiBc = r.epidemiological_barcode || r.hxb2_barcode;
+        const showDualTrack = epiBc && r.hxb2_barcode && epiBc !== r.hxb2_barcode;
+        const basalSvgBlock = showDualTrack
+          ? `
+            <div style="margin-top:8px;">
+              <div class="meta-key" style="margin-bottom:3px;">Basal 14-Trunk Deconvolution Track</div>
+              ${renderBarcodeSVG(r.hxb2_barcode, 820, 42, true)}
+            </div>
+          `
+          : '';
+
         card.innerHTML = `
           <div class="seq-header">
             <div class="seq-title">&gt; ${escapeHtml(r.sequence_id)}</div>
@@ -839,8 +893,16 @@
           </div>
           <div class="meta-grid">
             <div>
-              <div class="meta-key">Coordinate-Anchored Formula</div>
-              <div class="meta-val" style="color:var(--braun-orange);font-size:13.5px;">${escapeHtml(r.descriptive_name)}</div>
+              <div class="meta-key">Epidemiological Formula</div>
+              <div class="meta-val" style="color:var(--braun-orange);font-size:13.5px;">${escapeHtml(r.epidemiological_formula || r.descriptive_name)}</div>
+            </div>
+            <div>
+              <div class="meta-key">Basal 14-Trunk Formula</div>
+              <div class="meta-val" style="font-size:13px;">${escapeHtml(r.basal_formula || r.descriptive_name)}</div>
+            </div>
+            <div>
+              <div class="meta-key">Called Lineage &amp; Evidence</div>
+              <div class="meta-val" style="font-size:11.5px;">${supportSummary}</div>
             </div>
             <div>
               <div class="meta-key">Alignment &amp; Coverage</div>
@@ -851,12 +913,18 @@
               <div class="meta-val">${matchBadges}</div>
             </div>
             <div style="grid-column: 1 / -1;">
-              <div class="meta-key">CI-Bracketed HXB2 Barcode</div>
+              <div class="meta-key">Epidemiological HXB2 Barcode</div>
+              <div class="meta-val" style="font-size:11px;">${escapeHtml(epiBc)}</div>
+            </div>
+            <div style="grid-column: 1 / -1;">
+              <div class="meta-key">Basal CI-Bracketed HXB2 Barcode</div>
               <div class="meta-val" style="font-size:11px;">${escapeHtml(r.ci_bracketed_barcode)}</div>
             </div>
           </div>
           <div class="svg-container">
-            ${renderBarcodeSVG(r.hxb2_barcode, 820, 42, true)}
+            ${showDualTrack ? '<div class="meta-key" style="margin-bottom:3px;">Epidemiological Assignment Track</div>' : ''}
+            ${renderBarcodeSVG(epiBc, 820, 42, !showDualTrack)}
+            ${basalSvgBlock}
           </div>
           <details style="margin-top:8px;">
             <summary style="cursor:pointer;font-size:11.5px;font-weight:700;color:var(--text-secondary);">Show Segment Table (${r.n_segments}) &amp; Breakpoint Audit (${r.n_breakpoints})</summary>
@@ -948,12 +1016,18 @@
 
     window.exportCSV = function() {
       if (!lastResults.length) return;
-      const header = "sequence_id,raw_length_nt,mapped_coding_nt,hxb2_span_start,hxb2_span_end,locus_scope,alignment_mode,descriptive_name,structural_formula,backbone_trunk,n_segments,n_breakpoints,hxb2_barcode,ci_bracketed_barcode,compendium_matches\n";
+      const header = "sequence_id,raw_length_nt,mapped_coding_nt,hxb2_span_start,hxb2_span_end,locus_scope,alignment_mode,called_lineage,called_category,call_identity_pct,call_stem_snps,call_p_value,epidemiological_formula,epidemiological_barcode,basal_formula,basal_barcode,descriptive_name,structural_formula,backbone_trunk,n_segments,n_breakpoints,hxb2_barcode,ci_bracketed_barcode,compendium_matches\n";
       const rows = lastResults.map(r => {
         const m = (r.matches || []).map(x => `${x.label} (${x.descriptive_name})`).join('; ');
+        const sup = r.call_support || null;
         return [
           csvField(r.sequence_id), r.raw_length_nt, r.mapped_coding_nt, r.hxb2_span_start, r.hxb2_span_end,
-          csvField(r.locus_scope), csvField(r.alignment_mode), csvField(r.descriptive_name), csvField(r.structural_formula),
+          csvField(r.locus_scope), csvField(r.alignment_mode),
+          csvField(r.called_lineage || ''), csvField(r.called_category || ''),
+          sup ? sup.identity_pct.toFixed(1) : '', sup ? sup.net_stem_snps : '', sup ? sup.p_value.toExponential(2) : '',
+          csvField(r.epidemiological_formula || ''), csvField(r.epidemiological_barcode || ''),
+          csvField(r.basal_formula || r.descriptive_name), csvField(r.basal_barcode || r.hxb2_barcode),
+          csvField(r.descriptive_name), csvField(r.structural_formula),
           csvField(r.backbone_trunk), r.n_segments, r.n_breakpoints, csvField(r.hxb2_barcode), csvField(r.ci_bracketed_barcode), csvField(m)
         ].join(',');
       }).join('\n');

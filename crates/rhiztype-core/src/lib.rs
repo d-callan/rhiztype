@@ -9,12 +9,15 @@ use std::cmp::Reverse;
 use std::collections::{BTreeMap, HashMap, HashSet};
 
 const PROFILES_TSV: &str = include_str!("../data/profiles_9719.tsv");
+const FOUNDER_PROFILES_TSV: &str = include_str!("../data/founder_profiles_9719.tsv");
+const CERTIFIED_PROFILES_TSV: &str = include_str!("../data/certified_profiles_8628.tsv");
 const COMPENDIUM_JSON: &str = include_str!("../data/compendium_bundle.json");
 
 pub const HXB2_FULL_LEN: usize = 9719;
 pub const CODING_START_HXB2: usize = 790;
 pub const CODING_END_HXB2: usize = 9417;
 pub const CODING_LEN: usize = CODING_END_HXB2 - CODING_START_HXB2 + 1; // 8628
+const PURE_BASAL_COUNT: usize = 13; // A1, A2, A6, B, C, D, F1, F2, G0, H, J, K, L (excludes ?E)
 
 /// Hypervariable indel-rich loops in `gag` (p6 PTAP) and `env` (`V1/V2`, `V3`, `V4`, `V5`)
 const HYPERVARIABLE_MASK_RANGES: &[(usize, usize)] = &[
@@ -133,6 +136,15 @@ pub struct LineageMatch {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LineageCallSupport {
+    pub identity_pct: f64,
+    pub compared_nt: usize,
+    pub net_stem_snps: i32,
+    pub p_value: f64,
+    pub note: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SequenceResult {
     pub sequence_id: String,
     pub raw_length_nt: usize,
@@ -141,6 +153,14 @@ pub struct SequenceResult {
     pub hxb2_span_end: usize,
     pub locus_scope: String,
     pub alignment_mode: String,
+    pub called_lineage: String,
+    pub called_category: String,
+    pub call_support: Option<LineageCallSupport>,
+    pub epidemiological_formula: String,
+    pub epidemiological_barcode: String,
+    pub epidemiological_segments: Vec<SegmentCall>,
+    pub basal_formula: String,
+    pub basal_barcode: String,
     pub structural_formula: String,
     pub descriptive_name: String,
     pub backbone_trunk: String,
@@ -155,12 +175,38 @@ pub struct SequenceResult {
     pub matches: Vec<LineageMatch>,
 }
 
+struct CertifiedLineage {
+    label: String,
+    category: String,
+    backbone_idx: usize,
+    global_stem: bool,
+    clonal_stem: bool,
+    dag_parent_indices: Vec<usize>,
+    segments: Vec<(String, usize, usize)>,
+    profile: Vec<i8>,
+}
+
+struct RivalProfile {
+    label: String,
+    profile: Vec<i8>,
+}
+
+struct LineageCallDecision {
+    called_lineage: String,
+    called_category: String,
+    certified_compendium_label: Option<String>,
+    call_support: LineageCallSupport,
+    residual_tract: Option<(String, String, usize, usize)>,
+}
+
 pub struct RhizTypeEngine {
     pub trunk_names: Vec<String>,
     /// 14 trunks x 8628 coding sites (0=A, 1=C, 2=G, 3=T, -1=indel, -2=forbidden domain)
     trunk_mat: Vec<Vec<i8>>,
-    /// Full 9719-nt profiles for each trunk + HXB2 for k-mer anchoring and banded alignment
+    /// Full 9719-nt profiles for each trunk + HXB2 + key founders for k-mer anchoring and banded alignment
     full_profiles_9719: Vec<Vec<i8>>,
+    /// Bitmask over HXB2 1..9719 of bases present in any full profile (accelerates banded NW inner loop)
+    base_mask_9719: Vec<u8>,
     cm240_coding: Vec<i8>,
     /// 15-mer hash index -> list of (profile_idx, hxb2_0based_pos)
     kmer_index: HashMap<u32, Vec<(u8, u16)>>,
@@ -168,6 +214,14 @@ pub struct RhizTypeEngine {
     lanl_msa_to_hxb2: Vec<usize>,
     pub compendium: Vec<CompendiumEntry>,
     loop_mask_coding: Vec<bool>,
+    /// Tier-2 Guarded Certified Clade Caller panel (139 verified + 6 collapsed LANL CRFs + 5 derived + 15 novel)
+    certified_lineages: Vec<CertifiedLineage>,
+    /// Rival profiles for residual recombination checking (14 basal + 13 founder CRFs/Subtype_G)
+    founder_rivals: Vec<RivalProfile>,
+    /// Tier-1 Epidemiological segmentation panel (13 pure + 12 founder CRFs)
+    epi_names: Vec<String>,
+    epi_mat: Vec<Vec<i8>>,
+    epi_penalties: Vec<f64>,
 }
 
 fn base_to_int(b: u8) -> i8 {
@@ -218,6 +272,27 @@ impl RhizTypeEngine {
             }
         }
 
+        let mut founder_profiles: HashMap<String, Vec<i8>> = HashMap::new();
+        for line in FOUNDER_PROFILES_TSV.lines() {
+            let line = line.trim();
+            if line.is_empty() || line.starts_with('#') {
+                continue;
+            }
+            let mut parts = line.split('\t');
+            if let (Some(name), Some(seq)) = (parts.next(), parts.next()) {
+                let v = seq_to_int_vec(seq);
+                assert_eq!(
+                    v.len(),
+                    HXB2_FULL_LEN,
+                    "Founder profile {} has length {} != {}",
+                    name,
+                    v.len(),
+                    HXB2_FULL_LEN
+                );
+                founder_profiles.insert(name.to_string(), v);
+            }
+        }
+
         let trunk_order = vec![
             "A1", "A2", "A6", "B", "C", "D", "F1", "F2", "G0", "H", "J", "K", "L", "?E",
         ];
@@ -248,19 +323,37 @@ impl RhizTypeEngine {
             trunk_mat.push(cod_arr);
         }
 
+        // Index key divergent global founder CRFs/Subtype_G alongside basal trunks for higher alignment sensitivity
+        let align_founder_keys = ["CRF01_AE", "CRF02_AG", "Subtype_G", "CRF06_cpx", "CRF07_BC"];
+        for &fk in &align_founder_keys {
+            if let Some(fprof) = founder_profiles.get(fk) {
+                full_profiles_9719.push(fprof.clone());
+            }
+        }
+
+        let mut base_mask_9719 = vec![0u8; HXB2_FULL_LEN];
+        for prof in &full_profiles_9719 {
+            for (pos, &b) in prof.iter().enumerate() {
+                if (0..=3).contains(&b) {
+                    base_mask_9719[pos] |= 1u8 << (b as u8);
+                }
+            }
+        }
+
         let cm240_full = raw_profiles
             .get("CM240")
             .expect("Missing CM240 profile in embedded TSV");
         let cm240_coding = cm240_full[(CODING_START_HXB2 - 1)..CODING_END_HXB2].to_vec();
 
-        // Build 13-mer / 15-mer index across all 15 full profiles (step 2 nt for compact fast lookup)
+        // Build 15-mer index across all full profiles (step 2 nt for compact fast lookup)
         let mut kmer_index: HashMap<u32, Vec<(u8, u16)>> = HashMap::new();
         for (p_idx, prof) in full_profiles_9719.iter().enumerate() {
             for pos in (0..(prof.len().saturating_sub(15))).step_by(2) {
                 if let Some(code) = encode_kmer_15(&prof[pos..(pos + 15)]) {
                     let entry = kmer_index.entry(code).or_default();
-                    if entry.len() < 8 {
-                        entry.push((p_idx as u8, pos as u16));
+                    let pos16 = pos as u16;
+                    if entry.len() < 8 && !entry.iter().any(|&(_, rp)| rp == pos16) {
+                        entry.push((p_idx as u8, pos16));
                     }
                 }
             }
@@ -268,6 +361,144 @@ impl RhizTypeEngine {
 
         let bundle: CompendiumBundle =
             serde_json::from_str(COMPENDIUM_JSON).expect("Invalid embedded compendium_bundle.json");
+        let comp_map: HashMap<&str, &CompendiumEntry> = bundle
+            .compendium
+            .iter()
+            .map(|e| (e.label.as_str(), e))
+            .collect();
+        let trunk_idx_map: HashMap<&str, usize> = trunk_names
+            .iter()
+            .enumerate()
+            .map(|(i, n)| (n.as_str(), i))
+            .collect();
+
+        // Load Tier-2 Certified Lineages
+        let mut certified_lineages = Vec::new();
+        let mut raw_parent_names: Vec<Vec<String>> = Vec::new();
+        for line in CERTIFIED_PROFILES_TSV.lines() {
+            let line = line.trim();
+            if line.is_empty() || line.starts_with('#') {
+                continue;
+            }
+            let cols: Vec<&str> = line.split('\t').collect();
+            if cols.len() < 6 {
+                continue;
+            }
+            let label = cols[0].to_string();
+            let category = cols[1].to_string();
+            let flags = cols[2];
+            let parents_col = cols[3];
+            let seq_8628 = seq_to_int_vec(cols[5]);
+            assert_eq!(
+                seq_8628.len(),
+                CODING_LEN,
+                "Certified profile {} has length {} != {}",
+                label,
+                seq_8628.len(),
+                CODING_LEN
+            );
+
+            let entry = comp_map
+                .get(label.as_str())
+                .unwrap_or_else(|| panic!("Certified lineage {} missing from compendium_bundle.json", label));
+            let bb_key = if entry.backbone == "G" { "G0" } else { entry.backbone.as_str() };
+            let backbone_idx = *trunk_idx_map.get(bb_key).unwrap_or(&0);
+            let segments = parse_barcode_segments(&entry.hxb2_barcode);
+
+            let global_stem = flags.split(',').any(|f| f == "global_stem");
+            let clonal_stem = flags.split(',').any(|f| f == "clonal_stem");
+            let p_names = if parents_col == "-" || parents_col.is_empty() {
+                Vec::new()
+            } else {
+                parents_col.split('+').map(|s| s.to_string()).collect()
+            };
+            raw_parent_names.push(p_names);
+
+            certified_lineages.push(CertifiedLineage {
+                label,
+                category,
+                backbone_idx,
+                global_stem,
+                clonal_stem,
+                dag_parent_indices: Vec::new(),
+                segments,
+                profile: seq_8628,
+            });
+        }
+
+        let cert_idx_map: HashMap<String, usize> = certified_lineages
+            .iter()
+            .enumerate()
+            .map(|(i, c)| (c.label.clone(), i))
+            .collect();
+        for (i, p_names) in raw_parent_names.into_iter().enumerate() {
+            for pn in p_names {
+                if let Some(&pi) = cert_idx_map.get(&pn) {
+                    certified_lineages[i].dag_parent_indices.push(pi);
+                }
+            }
+        }
+
+        // Build rival list for Guard 4 (14 basal trunks + 13 founder CRFs/Subtype_G)
+        let epi_founder_order = [
+            "CRF01_AE",
+            "CRF02_AG",
+            "Subtype_G",
+            "CRF06_cpx",
+            "CRF07_BC",
+            "CRF08_BC",
+            "CRF11_cpx",
+            "CRF12_BF",
+            "CRF13_cpx",
+            "CRF15_01B",
+            "CRF33_01B",
+            "CRF55_01B",
+            "CRF63_02A6",
+        ];
+        let mut founder_rivals = Vec::new();
+        for (t_name, t_prof) in trunk_names.iter().zip(trunk_mat.iter()) {
+            founder_rivals.push(RivalProfile {
+                label: t_name.clone(),
+                profile: t_prof.clone(),
+            });
+        }
+        for &fk in &epi_founder_order {
+            if let Some(fprof) = founder_profiles.get(fk) {
+                founder_rivals.push(RivalProfile {
+                    label: fk.to_string(),
+                    profile: fprof[(CODING_START_HXB2 - 1)..CODING_END_HXB2].to_vec(),
+                });
+            }
+        }
+
+        // Build Tier-1 Epidemiological Segmentation Panel (13 pure subtypes + 12 founder CRFs)
+        let mut epi_names = Vec::new();
+        let mut epi_mat = Vec::new();
+        let mut epi_penalties = Vec::new();
+        for (i, t_name) in trunk_names.iter().enumerate().take(PURE_BASAL_COUNT) {
+            if t_name == "G0" {
+                epi_names.push("G".to_string());
+                let g_prof = founder_profiles
+                    .get("Subtype_G")
+                    .map(|p| p[(CODING_START_HXB2 - 1)..CODING_END_HXB2].to_vec())
+                    .unwrap_or_else(|| trunk_mat[i].clone());
+                epi_mat.push(g_prof);
+            } else {
+                epi_names.push(t_name.clone());
+                epi_mat.push(trunk_mat[i].clone());
+            }
+            epi_penalties.push(0.0);
+        }
+        for &fk in &epi_founder_order {
+            if fk == "Subtype_G" {
+                continue;
+            }
+            if let Some(fprof) = founder_profiles.get(fk) {
+                epi_names.push(fk.to_string());
+                epi_mat.push(fprof[(CODING_START_HXB2 - 1)..CODING_END_HXB2].to_vec());
+                epi_penalties.push(0.005);
+            }
+        }
 
         let mut loop_mask_coding = vec![false; CODING_LEN];
         for &(lo, hi) in HYPERVARIABLE_MASK_RANGES {
@@ -282,12 +513,18 @@ impl RhizTypeEngine {
             trunk_names,
             trunk_mat,
             full_profiles_9719,
+            base_mask_9719,
             cm240_coding,
             kmer_index,
             lanl_msa_len: bundle.lanl_msa_len,
             lanl_msa_to_hxb2: bundle.lanl_msa_to_hxb2,
             compendium: bundle.compendium,
             loop_mask_coding,
+            certified_lineages,
+            founder_rivals,
+            epi_names,
+            epi_mat,
+            epi_penalties,
         }
     }
 
@@ -772,16 +1009,9 @@ impl RhizTypeEngine {
 
             for j in j_lo..=j_hi {
                 let r_pos = r_start + j - 1;
-                // Match if query base appears in HXB2 or any clean trunk at r_pos
-                let mut matched = false;
-                if qb >= 0 {
-                    for prof in &self.full_profiles_9719 {
-                        if prof[r_pos] == qb {
-                            matched = true;
-                            break;
-                        }
-                    }
-                }
+                // Match if query base appears in HXB2, any basal trunk, or indexed founders at r_pos
+                let matched = (0..=3).contains(&qb)
+                    && (self.base_mask_9719[r_pos] & (1u8 << (qb as u8))) != 0;
                 let sub_score = if matched { 2 } else { -1 };
 
                 let diag = score[(i - 1) * cols + (j - 1)] + sub_score;
@@ -865,6 +1095,11 @@ impl RhizTypeEngine {
             .collect();
 
         if valid_positions.len() < 100 {
+            let unclass_formula = if cfg.mask_hypervariable_loops {
+                "Unclassifiable (<100 usable coding nt after loop mask)".to_string()
+            } else {
+                "Unclassifiable (<100 mapped coding nt)".to_string()
+            };
             return SequenceResult {
                 sequence_id: header.to_string(),
                 raw_length_nt: raw_len,
@@ -873,11 +1108,15 @@ impl RhizTypeEngine {
                 hxb2_span_end: 0,
                 locus_scope: "insufficient_coverage".to_string(),
                 alignment_mode: align_mode,
-                structural_formula: if cfg.mask_hypervariable_loops {
-                    "Unclassifiable (<100 usable coding nt after loop mask)".to_string()
-                } else {
-                    "Unclassifiable (<100 mapped coding nt)".to_string()
-                },
+                called_lineage: "Unclassifiable".to_string(),
+                called_category: "Unclassifiable".to_string(),
+                call_support: None,
+                epidemiological_formula: unclass_formula.clone(),
+                epidemiological_barcode: String::new(),
+                epidemiological_segments: vec![],
+                basal_formula: unclass_formula.clone(),
+                basal_barcode: String::new(),
+                structural_formula: unclass_formula,
                 descriptive_name: "Unclassifiable".to_string(),
                 backbone_trunk: "None".to_string(),
                 constituent_trunks: vec![],
@@ -957,7 +1196,35 @@ impl RhizTypeEngine {
         let mut constituent_trunks: Vec<String> = constituent_set.into_iter().collect();
         constituent_trunks.sort();
 
-        let matches = self.match_compendium(&struct_formula, &segs, &bps, &locus_scope);
+        let mut matches = self.match_compendium(&struct_formula, &segs, &bps, &locus_scope);
+        let decision = self.call_certified_lineage(
+            &q_coding,
+            h_start,
+            h_end,
+            &locus_scope,
+            &segs,
+            &bps,
+            cfg,
+        );
+        if let Some(comp_label) = &decision.certified_compendium_label {
+            self.prepend_certified_match(&mut matches, comp_label, &decision.call_support);
+        }
+
+        let (epidemiological_formula, epidemiological_barcode, epidemiological_segments) = self
+            .build_epidemiological_map(
+                &decision,
+                &locus_scope,
+                h_start,
+                h_end,
+                q_sub,
+                first_idx,
+                &col_to_hxb2,
+                &segs,
+                cfg,
+            );
+
+        let basal_formula = desc_name.clone();
+        let basal_barcode = hxb2_barcode.clone();
 
         SequenceResult {
             sequence_id: header.to_string(),
@@ -967,6 +1234,14 @@ impl RhizTypeEngine {
             hxb2_span_end: h_end,
             locus_scope,
             alignment_mode: align_mode,
+            called_lineage: decision.called_lineage,
+            called_category: decision.called_category,
+            call_support: Some(decision.call_support),
+            epidemiological_formula,
+            epidemiological_barcode,
+            epidemiological_segments,
+            basal_formula,
+            basal_barcode,
             structural_formula: struct_formula,
             descriptive_name: desc_name,
             backbone_trunk: backbone,
@@ -994,7 +1269,44 @@ impl RhizTypeEngine {
         min_informative_snps: usize,
         p_fisher_thresh: f64,
     ) -> (Vec<SegmentCall>, Vec<BreakpointCall>) {
-        let k_trunks = self.trunk_names.len(); // 14
+        let mut basal_penalties = vec![0.0f64; self.trunk_names.len()];
+        if let Some(last) = basal_penalties.last_mut() {
+            // Require >3.5% SNP advantage before preferring the partial ?E (CRF01_AE) cassette over sampled basal trunks
+            *last = 0.035;
+        }
+        self.run_paff_viterbi_panel(
+            &self.trunk_names,
+            &self.trunk_mat,
+            &basal_penalties,
+            true,
+            q_sub,
+            offset_in_coding,
+            col_to_hxb2,
+            l_sub,
+            gamma,
+            min_hxb2_span_nt,
+            min_informative_snps,
+            p_fisher_thresh,
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn run_paff_viterbi_panel(
+        &self,
+        names: &[String],
+        mat: &[Vec<i8>],
+        penalties: &[f64],
+        allow_ghost_e_relabel: bool,
+        q_sub: &[i8],
+        offset_in_coding: usize,
+        col_to_hxb2: &[usize],
+        l_sub: usize,
+        gamma: f64,
+        min_hxb2_span_nt: usize,
+        min_informative_snps: usize,
+        p_fisher_thresh: f64,
+    ) -> (Vec<SegmentCall>, Vec<BreakpointCall>) {
+        let k_trunks = names.len();
         let k_total = k_trunks + 1;
         let ghost_idx = k_trunks;
         let mismatch_cost = 1.0f64;
@@ -1005,11 +1317,13 @@ impl RhizTypeEngine {
 
         // Site 0 initialization
         for k in 0..k_trunks {
-            dp[k * l_sub] = self.site_emission_cost(
-                q_sub[0],
-                self.trunk_mat[k][offset_in_coding],
-                mismatch_cost,
-            );
+            let base_c =
+                self.site_emission_cost(q_sub[0], mat[k][offset_in_coding], mismatch_cost);
+            dp[k * l_sub] = if q_sub[0] >= 0 {
+                base_c + penalties[k]
+            } else {
+                base_c
+            };
         }
         dp[ghost_idx * l_sub] = if q_sub[0] >= 0 { ghost_cost } else { 0.0 };
 
@@ -1030,10 +1344,9 @@ impl RhizTypeEngine {
                 let stay_cost = dp[k * l_sub + (u - 1)];
                 let emit = if k < k_trunks {
                     let base_c =
-                        self.site_emission_cost(q_sub[u], self.trunk_mat[k][cod_pos], mismatch_cost);
-                    // Require >3.5% SNP advantage before preferring the partial ?E (CRF01_AE) cassette over sampled basal trunks
-                    if k + 1 == k_trunks && q_sub[u] >= 0 {
-                        base_c + 0.035
+                        self.site_emission_cost(q_sub[u], mat[k][cod_pos], mismatch_cost);
+                    if q_sub[u] >= 0 {
+                        base_c + penalties[k]
                     } else {
                         base_c
                     }
@@ -1095,7 +1408,8 @@ impl RhizTypeEngine {
                 }
                 let span1 = (col_to_hxb2[e1 - 1] + 1).saturating_sub(col_to_hxb2[s1]);
                 let span2 = (col_to_hxb2[e2 - 1] + 1).saturating_sub(col_to_hxb2[s2]);
-                let (pval, n11, _n12, _n21, n22, _, _) = self.test_boundary_significance(
+                let (pval, n11, _n12, _n21, n22, _, _) = self.test_boundary_significance_for(
+                    mat,
                     q_sub,
                     offset_in_coding,
                     ghost_idx,
@@ -1131,8 +1445,10 @@ impl RhizTypeEngine {
                 let span1 = (col_to_hxb2[e1 - 1] + 1).saturating_sub(col_to_hxb2[s1]);
                 let span2 = (col_to_hxb2[e2 - 1] + 1).saturating_sub(col_to_hxb2[s2]);
 
-                let valid1 = self.trunk_valid_fraction(t1, offset_in_coding + s1, offset_in_coding + e2);
-                let valid2 = self.trunk_valid_fraction(t2, offset_in_coding + s1, offset_in_coding + e2);
+                let valid1 =
+                    Self::trunk_valid_fraction_for(mat, t1, offset_in_coding + s1, offset_in_coding + e2);
+                let valid2 =
+                    Self::trunk_valid_fraction_for(mat, t2, offset_in_coding + s1, offset_in_coding + e2);
 
                 let keep_t = if valid1 < 0.7 && valid2 >= 0.7 {
                     t2
@@ -1165,26 +1481,27 @@ impl RhizTypeEngine {
         // (e.g. trunk ?E next to a ghost segment relabelled ?E).
         let label_of = |s: usize, e: usize, t: usize| -> String {
             if t < k_trunks {
-                return self.trunk_names[t].clone();
+                return names[t].clone();
             }
-            let h0 = col_to_hxb2[s];
-            let mut valid_cnt = 0usize;
-            let mut match_cnt = 0usize;
-            for u in s..e {
-                let qb = q_sub[u];
-                let cb = self.cm240_coding[offset_in_coding + u];
-                if qb >= 0 && cb >= 0 {
-                    valid_cnt += 1;
-                    if qb == cb {
-                        match_cnt += 1;
+            if allow_ghost_e_relabel {
+                let h0 = col_to_hxb2[s];
+                let mut valid_cnt = 0usize;
+                let mut match_cnt = 0usize;
+                for u in s..e {
+                    let qb = q_sub[u];
+                    let cb = self.cm240_coding[offset_in_coding + u];
+                    if qb >= 0 && cb >= 0 {
+                        valid_cnt += 1;
+                        if qb == cb {
+                            match_cnt += 1;
+                        }
                     }
                 }
+                if valid_cnt > 50 && h0 >= 5000 && (match_cnt as f64 / valid_cnt as f64) >= 0.85 {
+                    return "?E".to_string();
+                }
             }
-            if valid_cnt > 50 && h0 >= 5000 && (match_cnt as f64 / valid_cnt as f64) >= 0.85 {
-                "?E".to_string()
-            } else {
-                "Unattributed".to_string()
-            }
+            "Unattributed".to_string()
         };
         // (start, end, state, label, mixed states, span of the piece keeping the state)
         let mut merged: Vec<(usize, usize, usize, String, bool, usize)> = Vec::new();
@@ -1210,7 +1527,8 @@ impl RhizTypeEngine {
             let (s1, e1, t1, _, _, _) = merged[i];
             let (_s2, e2, t2, _, _, _) = merged[i + 1];
             let (pval, n11, n12, n21, n22, ci_low_col, ci_high_col) = self
-                .test_boundary_significance(
+                .test_boundary_significance_for(
+                    mat,
                     q_sub,
                     offset_in_coding,
                     ghost_idx,
@@ -1257,8 +1575,8 @@ impl RhizTypeEngine {
             let mut id_valid = 0usize;
             let mut id_match = 0usize;
             let t_check = if t < k_trunks && !mixed {
-                Some(&self.trunk_mat[t])
-            } else if t_label == "?E" {
+                Some(&mat[t])
+            } else if allow_ghost_e_relabel && t_label == "?E" {
                 Some(&self.cm240_coding)
             } else {
                 None
@@ -1320,18 +1638,24 @@ impl RhizTypeEngine {
         }
     }
 
-    fn trunk_valid_fraction(&self, t_idx: usize, cod_start: usize, cod_end: usize) -> f64 {
-        if t_idx >= self.trunk_mat.len() || cod_end <= cod_start {
+    fn trunk_valid_fraction_for(
+        mat: &[Vec<i8>],
+        t_idx: usize,
+        cod_start: usize,
+        cod_end: usize,
+    ) -> f64 {
+        if t_idx >= mat.len() || cod_end <= cod_start {
             return 1.0;
         }
-        let slice = &self.trunk_mat[t_idx][cod_start..cod_end];
+        let slice = &mat[t_idx][cod_start..cod_end];
         let valid = slice.iter().filter(|&&b| b >= 0).count();
         valid as f64 / slice.len() as f64
     }
 
     #[allow(clippy::too_many_arguments)]
-    fn test_boundary_significance(
+    fn test_boundary_significance_for(
         &self,
+        mat: &[Vec<i8>],
         q_sub: &[i8],
         offset: usize,
         ghost_idx: usize,
@@ -1348,8 +1672,8 @@ impl RhizTypeEngine {
         let mut n22 = 0usize;
 
         if t_l != ghost_idx && t_r != ghost_idx {
-            let ref_l = &self.trunk_mat[t_l];
-            let ref_r = &self.trunk_mat[t_r];
+            let ref_l = &mat[t_l];
+            let ref_r = &mat[t_r];
 
             let valid_r_on_left = (col_start..col_bp)
                 .filter(|&u| ref_r[offset + u] >= 0)
@@ -1361,8 +1685,7 @@ impl RhizTypeEngine {
                     let qb = q_sub[u];
                     let rl = ref_l[offset + u];
                     if qb >= 0 && rl >= 0 {
-                        let other_diff = self
-                            .trunk_mat
+                        let other_diff = mat
                             .iter()
                             .any(|tr| tr[offset + u] >= 0 && tr[offset + u] != rl);
                         if other_diff {
@@ -1399,8 +1722,7 @@ impl RhizTypeEngine {
                     let qb = q_sub[u];
                     let rr = ref_r[offset + u];
                     if qb >= 0 && rr >= 0 {
-                        let other_diff = self
-                            .trunk_mat
+                        let other_diff = mat
                             .iter()
                             .any(|tr| tr[offset + u] >= 0 && tr[offset + u] != rr);
                         if other_diff {
@@ -1428,7 +1750,7 @@ impl RhizTypeEngine {
             }
         } else {
             let known_t = if t_l == ghost_idx { t_r } else { t_l };
-            let ref_k = &self.trunk_mat[known_t];
+            let ref_k = &mat[known_t];
 
             let mut match_k_l = 0usize;
             let mut orphan_l = 0usize;
@@ -1438,7 +1760,7 @@ impl RhizTypeEngine {
                 if qb >= 0 && rk >= 0 {
                     if qb == rk {
                         match_k_l += 1;
-                    } else if !self.trunk_mat.iter().any(|tr| tr[offset + u] == qb) {
+                    } else if !mat.iter().any(|tr| tr[offset + u] == qb) {
                         orphan_l += 1;
                     }
                 }
@@ -1452,7 +1774,7 @@ impl RhizTypeEngine {
                 if qb >= 0 && rk >= 0 {
                     if qb == rk {
                         match_k_r += 1;
-                    } else if !self.trunk_mat.iter().any(|tr| tr[offset + u] == qb) {
+                    } else if !mat.iter().any(|tr| tr[offset + u] == qb) {
                         orphan_r += 1;
                     }
                 }
@@ -1482,8 +1804,8 @@ impl RhizTypeEngine {
         let mut right_info_first = col_bp;
 
         if t_l != ghost_idx && t_r != ghost_idx {
-            let ref_l = &self.trunk_mat[t_l];
-            let ref_r = &self.trunk_mat[t_r];
+            let ref_l = &mat[t_l];
+            let ref_r = &mat[t_r];
             for u in col_start..col_bp {
                 let qb = q_sub[u];
                 let rl = ref_l[offset + u];
@@ -1512,6 +1834,674 @@ impl RhizTypeEngine {
             left_info_last,
             right_info_first,
         )
+    }
+
+    fn display_lineage_name(lbl: &str) -> String {
+        if lbl == "G0" {
+            "G".to_string()
+        } else if let Some(stripped) = lbl.strip_prefix("Subtype_") {
+            stripped.to_string()
+        } else {
+            lbl.to_string()
+        }
+    }
+
+    fn kadane_rival_scan(
+        &self,
+        q_coding: &[i8],
+        cand_prof: &[i8],
+        rivals: &[RivalProfile],
+        skip_labels: &[&str],
+        min_stem: i32,
+        p_thresh: f64,
+    ) -> Option<(String, usize, usize, i32, f64)> {
+        let mut worst_tract: Option<(String, usize, usize, i32, f64)> = None;
+        let mut best_p = 1.0f64;
+
+        for rival in rivals {
+            if skip_labels.iter().any(|&s| s == rival.label) {
+                continue;
+            }
+            let mut cur = 0i32;
+            let mut cur_start = 0usize;
+            let mut best = 0i32;
+            let mut best_s = 0usize;
+            let mut best_e = 0usize;
+
+            for pos in 0..CODING_LEN {
+                let qb = q_coding[pos];
+                if qb < 0 {
+                    continue;
+                }
+                let cb = cand_prof[pos];
+                let rb = rival.profile[pos];
+                if cb < 0 || rb < 0 || cb == rb {
+                    continue;
+                }
+                let w = if qb == rb {
+                    1
+                } else if qb == cb {
+                    -1
+                } else {
+                    0
+                };
+                if w == 0 {
+                    continue;
+                }
+                if cur + w <= 0 {
+                    cur = 0;
+                    cur_start = pos + 1;
+                } else {
+                    if cur == 0 {
+                        cur_start = pos;
+                    }
+                    cur += w;
+                    if cur > best {
+                        best = cur;
+                        best_s = cur_start;
+                        best_e = pos;
+                    }
+                }
+            }
+
+            if best >= min_stem && best_e >= best_s {
+                let mut wins_rival = 0usize;
+                let mut wins_cand = 0usize;
+                for pos in best_s..=best_e {
+                    let qb = q_coding[pos];
+                    let cb = cand_prof[pos];
+                    let rb = rival.profile[pos];
+                    if qb >= 0 && cb >= 0 && rb >= 0 && cb != rb {
+                        if qb == rb {
+                            wins_rival += 1;
+                        } else if qb == cb {
+                            wins_cand += 1;
+                        }
+                    }
+                }
+                let tot = wins_rival + wins_cand;
+                let net = wins_rival as i32 - wins_cand as i32;
+                let span_nt = best_e - best_s + 1;
+                if net >= min_stem && span_nt >= 80 && tot > 0 {
+                    let p_val = binom_upper_tail_half(wins_rival, tot);
+                    if p_val < p_thresh && p_val < best_p {
+                        best_p = p_val;
+                        worst_tract = Some((
+                            rival.label.clone(),
+                            CODING_START_HXB2 + best_s,
+                            CODING_START_HXB2 + best_e,
+                            net,
+                            p_val,
+                        ));
+                    }
+                }
+            }
+        }
+        worst_tract
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn call_certified_lineage(
+        &self,
+        q_coding: &[i8],
+        _h_start: usize,
+        _h_end: usize,
+        locus_scope: &str,
+        basal_segs: &[SegmentCall],
+        basal_bps: &[BreakpointCall],
+        cfg: &ScreeningConfig,
+    ) -> LineageCallDecision {
+        // 1. Best pure basal trunk strictly across 0..PURE_BASAL_COUNT (NEVER ?E)
+        let mut best_basal_idx = 0usize;
+        let mut best_basal_id = -1.0f64;
+        let mut best_basal_matched = 0usize;
+        let mut best_basal_compared = 0usize;
+        let mut best_non_g0_idx = 0usize;
+        let mut best_non_g0_id = -1.0f64;
+        for b in 0..PURE_BASAL_COUNT {
+            let mut matched = 0usize;
+            let mut compared = 0usize;
+            for (&qb, &rb) in q_coding.iter().zip(self.trunk_mat[b].iter()) {
+                if qb >= 0 && rb >= 0 {
+                    compared += 1;
+                    if qb == rb {
+                        matched += 1;
+                    }
+                }
+            }
+            if compared >= 50 {
+                let id = matched as f64 / compared as f64;
+                if id > best_basal_id {
+                    best_basal_id = id;
+                    best_basal_idx = b;
+                    best_basal_matched = matched;
+                    best_basal_compared = compared;
+                }
+                if self.trunk_names[b] != "G0" && id > best_non_g0_id {
+                    best_non_g0_id = id;
+                    best_non_g0_idx = b;
+                }
+            }
+        }
+        let best_basal_name = self.trunk_names[best_basal_idx].as_str();
+        let best_basal_prof = &self.trunk_mat[best_basal_idx];
+
+        struct SurvivingCand<'a> {
+            cand: &'a CertifiedLineage,
+            cand_id: f64,
+            compared: usize,
+            net_stem: i32,
+            p_stem: f64,
+        }
+
+        let mut survivors: Vec<SurvivingCand<'_>> = Vec::new();
+        for cand in &self.certified_lineages {
+            // Subtype_G is the circulating clonal descendant of scrubbed G0; test its stem against the closest non-G0 basal subtype.
+            let stem_ref_idx = if cand.label == "Subtype_G" && best_basal_name == "G0" {
+                best_non_g0_idx
+            } else {
+                best_basal_idx
+            };
+            let stem_ref_prof = &self.trunk_mat[stem_ref_idx];
+
+            let mut matched = 0usize;
+            let mut compared = 0usize;
+            let mut cand_wins = 0usize;
+            let mut basal_wins = 0usize;
+
+            for pos in 0..CODING_LEN {
+                let qb = q_coding[pos];
+                if qb < 0 {
+                    continue;
+                }
+                let cb = cand.profile[pos];
+                if cb >= 0 {
+                    compared += 1;
+                    if qb == cb {
+                        matched += 1;
+                    }
+                    let bb = stem_ref_prof[pos];
+                    if bb >= 0 && cb != bb {
+                        if qb == cb {
+                            cand_wins += 1;
+                        } else if qb == bb {
+                            basal_wins += 1;
+                        }
+                    }
+                }
+            }
+            if compared < 100 {
+                continue;
+            }
+            let cand_id = matched as f64 / compared as f64;
+            if cand_id < 0.84 {
+                continue;
+            }
+
+            // Guard 3: Binomial clade-stem synapomorphy test vs best of PURE_13
+            let net_stem = cand_wins as i32 - basal_wins as i32;
+            let min_net = if compared >= 4000 { 8 } else { 5 };
+            let max_p_stem = if compared >= 4000 {
+                cfg.p_fisher_thresh.min(1e-4)
+            } else {
+                cfg.p_fisher_thresh.max(0.01).min(0.01)
+            };
+            if net_stem < min_net {
+                continue;
+            }
+            let p_stem = binom_upper_tail_half(cand_wins, cand_wins + basal_wins);
+            if p_stem > max_p_stem {
+                continue;
+            }
+
+            // Guard 1: Donor-Tract Completeness & Window Distinguishability
+            if cand.category != "Pure_Subtype" && cand.segments.len() >= 2 {
+                let mut covered_segs = 0usize;
+                let mut donor_ok = true;
+                let bb_name = self.trunk_names[cand.backbone_idx].as_str();
+                let bb_prof = &self.trunk_mat[cand.backbone_idx];
+
+                for (seg_trk, s_h0, s_h1) in &cand.segments {
+                    let c0 = s_h0.saturating_sub(CODING_START_HXB2).min(CODING_LEN);
+                    let c1 = (s_h1 + 1).saturating_sub(CODING_START_HXB2).min(CODING_LEN);
+                    if c1 <= c0 {
+                        continue;
+                    }
+                    let mut cov = 0usize;
+                    let mut cw_bb = 0usize;
+                    let mut bw_bb = 0usize;
+                    let mut cw_best = 0usize;
+                    let mut bw_best = 0usize;
+                    for pos in c0..c1 {
+                        let qb = q_coding[pos];
+                        let cb = cand.profile[pos];
+                        if qb < 0 || cb < 0 {
+                            continue;
+                        }
+                        cov += 1;
+                        let bp_b = bb_prof[pos];
+                        if bp_b >= 0 && cb != bp_b {
+                            if qb == cb {
+                                cw_bb += 1;
+                            } else if qb == bp_b {
+                                bw_bb += 1;
+                            }
+                        }
+                        let bp_best = best_basal_prof[pos];
+                        if bp_best >= 0 && cb != bp_best {
+                            if qb == cb {
+                                cw_best += 1;
+                            } else if qb == bp_best {
+                                bw_best += 1;
+                            }
+                        }
+                    }
+                    if cov >= 120 {
+                        covered_segs += 1;
+                        if seg_trk != bb_name && cw_bb + bw_bb >= 6 && cw_bb <= bw_bb {
+                            donor_ok = false;
+                            break;
+                        }
+                        if seg_trk != best_basal_name && cw_best + bw_best >= 6 && cw_best <= bw_best {
+                            donor_ok = false;
+                            break;
+                        }
+                    }
+                }
+                if !donor_ok {
+                    continue;
+                }
+                if locus_scope == "full" {
+                    if covered_segs < 2 {
+                        continue;
+                    }
+                } else if !cand.global_stem && !cand.clonal_stem && covered_segs < 2 {
+                    continue;
+                }
+            }
+
+            // Guard 2: DAG Parental Distinguishability
+            let max_p_dag = if compared >= 4000 { 1e-3 } else { 0.01 };
+            let mut dag_ok = true;
+            for &p_idx in &cand.dag_parent_indices {
+                let parent = &self.certified_lineages[p_idx];
+                let mut cw_p = 0usize;
+                let mut pw = 0usize;
+                for pos in 0..CODING_LEN {
+                    let qb = q_coding[pos];
+                    let cb = cand.profile[pos];
+                    let pb = parent.profile[pos];
+                    if qb >= 0 && cb >= 0 && pb >= 0 && cb != pb {
+                        if qb == cb {
+                            cw_p += 1;
+                        } else if qb == pb {
+                            pw += 1;
+                        }
+                    }
+                }
+                let net_p = cw_p as i32 - pw as i32;
+                if net_p < 5 || binom_upper_tail_half(cw_p, cw_p + pw) > max_p_dag {
+                    dag_ok = false;
+                    break;
+                }
+            }
+            if !dag_ok {
+                continue;
+            }
+
+            survivors.push(SurvivingCand {
+                cand,
+                cand_id,
+                compared,
+                net_stem,
+                p_stem,
+            });
+        }
+
+        survivors.sort_by(|a, b| {
+            b.cand_id
+                .partial_cmp(&a.cand_id)
+                .unwrap_or(std::cmp::Ordering::Equal)
+                .then_with(|| b.net_stem.cmp(&a.net_stem))
+                .then_with(|| b.cand.global_stem.cmp(&a.cand.global_stem))
+                .then_with(|| a.cand.label.cmp(&b.cand.label))
+        });
+
+        if let Some(best) = survivors.first() {
+            let min_stem_g4 = if best.compared >= 4000 { 12 } else { 10 };
+            let mut skip_vec: Vec<&str> = vec![best.cand.label.as_str()];
+            if best.cand.label == "Subtype_G" {
+                skip_vec.push("G0");
+            }
+            if let Some((rival_lbl, r_h0, r_h1, net_r, p_r)) = self.kadane_rival_scan(
+                q_coding,
+                &best.cand.profile,
+                &self.founder_rivals,
+                &skip_vec,
+                min_stem_g4,
+                1e-4,
+            ) {
+                let disp_base = Self::display_lineage_name(&best.cand.label);
+                let disp_rival = Self::display_lineage_name(&rival_lbl);
+                return LineageCallDecision {
+                    called_lineage: "URF".to_string(),
+                    called_category: "URF".to_string(),
+                    certified_compendium_label: None,
+                    call_support: LineageCallSupport {
+                        identity_pct: (best.cand_id * 1000.0).round() / 10.0,
+                        compared_nt: best.compared,
+                        net_stem_snps: -net_r,
+                        p_value: p_r,
+                        note: format!(
+                            "Rejected {} due to residual {} tract ({}-{} HXB2, net {:+} SNPs, p={:.1e})",
+                            disp_base, disp_rival, r_h0, r_h1, net_r, p_r
+                        ),
+                    },
+                    residual_tract: Some((disp_base, disp_rival, r_h0, r_h1)),
+                };
+            }
+
+            let disp = Self::display_lineage_name(&best.cand.label);
+            let stem_note = if best.cand.global_stem {
+                format!("Global founder stem vs {} (+{} SNPs)", best_basal_name, best.net_stem)
+            } else if best.cand.clonal_stem {
+                format!("Clonal clade stem vs {} (+{} SNPs)", best_basal_name, best.net_stem)
+            } else {
+                format!("Certified mosaic clade vs {} (+{} SNPs)", best_basal_name, best.net_stem)
+            };
+            return LineageCallDecision {
+                called_lineage: disp,
+                called_category: best.cand.category.clone(),
+                certified_compendium_label: Some(best.cand.label.clone()),
+                call_support: LineageCallSupport {
+                    identity_pct: (best.cand_id * 1000.0).round() / 10.0,
+                    compared_nt: best.compared,
+                    net_stem_snps: best.net_stem,
+                    p_value: best.p_stem,
+                    note: stem_note,
+                },
+                residual_tract: None,
+            };
+        }
+
+        // 3. Fallback: Pure Basal or Unindexed URF
+        if basal_segs.len() >= 2 {
+            let min_bp_p = basal_bps
+                .iter()
+                .map(|b| b.p_fisher)
+                .fold(1.0f64, |acc, p| acc.min(p));
+            return LineageCallDecision {
+                called_lineage: "URF".to_string(),
+                called_category: "URF".to_string(),
+                certified_compendium_label: None,
+                call_support: LineageCallSupport {
+                    identity_pct: (best_basal_id.max(0.0) * 1000.0).round() / 10.0,
+                    compared_nt: best_basal_compared,
+                    net_stem_snps: 0,
+                    p_value: min_bp_p,
+                    note: "Multi-trunk mosaic outside all 165 certified profiles".to_string(),
+                },
+                residual_tract: None,
+            };
+        }
+
+        let only_trunk = basal_segs
+            .first()
+            .map(|s| s.trunk.as_str())
+            .unwrap_or("Unattributed");
+        if only_trunk == "Unattributed" || only_trunk.starts_with('?') {
+            return LineageCallDecision {
+                called_lineage: "Unclassifiable".to_string(),
+                called_category: "Unclassifiable".to_string(),
+                certified_compendium_label: None,
+                call_support: LineageCallSupport {
+                    identity_pct: (best_basal_id.max(0.0) * 1000.0).round() / 10.0,
+                    compared_nt: best_basal_compared,
+                    net_stem_snps: 0,
+                    p_value: 1.0,
+                    note: format!("Unclassifiable basal segment ({})", only_trunk),
+                },
+                residual_tract: None,
+            };
+        }
+
+        let single_idx = self
+            .trunk_names
+            .iter()
+            .position(|t| t == only_trunk)
+            .unwrap_or(best_basal_idx);
+        let mut s_matched = 0usize;
+        let mut s_compared = 0usize;
+        for (&qb, &rb) in q_coding.iter().zip(self.trunk_mat[single_idx].iter()) {
+            if qb >= 0 && rb >= 0 {
+                s_compared += 1;
+                if qb == rb {
+                    s_matched += 1;
+                }
+            }
+        }
+        let s_id = if s_compared > 0 {
+            s_matched as f64 / s_compared as f64
+        } else {
+            0.0
+        };
+        let min_stem_g4 = if s_compared >= 4000 { 12 } else { 10 };
+        let basal_rivals = &self.founder_rivals[..self.trunk_names.len()];
+        let skip_vec = [only_trunk];
+        if let Some((rival_lbl, r_h0, r_h1, net_r, p_r)) = self.kadane_rival_scan(
+            q_coding,
+            &self.trunk_mat[single_idx],
+            basal_rivals,
+            &skip_vec,
+            min_stem_g4,
+            1e-4,
+        ) {
+            let disp_base = Self::display_lineage_name(only_trunk);
+            let disp_rival = Self::display_lineage_name(&rival_lbl);
+            return LineageCallDecision {
+                called_lineage: "URF".to_string(),
+                called_category: "URF".to_string(),
+                certified_compendium_label: None,
+                call_support: LineageCallSupport {
+                    identity_pct: (s_id * 1000.0).round() / 10.0,
+                    compared_nt: s_compared,
+                    net_stem_snps: -net_r,
+                    p_value: p_r,
+                    note: format!(
+                        "Residual {} tract in {} background ({}-{} HXB2, net {:+} SNPs, p={:.1e})",
+                        disp_rival, disp_base, r_h0, r_h1, net_r, p_r
+                    ),
+                },
+                residual_tract: Some((disp_base, disp_rival, r_h0, r_h1)),
+            };
+        }
+
+        let disp_pure = Self::display_lineage_name(only_trunk);
+        let (comp_lbl, final_cat) = if only_trunk == "G0" {
+            (Some("Subtype_G".to_string()), "Pure_Subtype".to_string())
+        } else {
+            (None, "Pure_Subtype".to_string())
+        };
+        LineageCallDecision {
+            called_lineage: disp_pure.clone(),
+            called_category: final_cat,
+            certified_compendium_label: comp_lbl,
+            call_support: LineageCallSupport {
+                identity_pct: (s_id * 1000.0).round() / 10.0,
+                compared_nt: s_compared,
+                net_stem_snps: best_basal_matched as i32,
+                p_value: 0.0,
+                note: format!("Basal pure subtype {} with no residual breakpoint", disp_pure),
+            },
+            residual_tract: None,
+        }
+    }
+
+    fn prepend_certified_match(
+        &self,
+        matches: &mut Vec<LineageMatch>,
+        comp_label: &str,
+        support: &LineageCallSupport,
+    ) {
+        let Some(entry) = self.compendium.iter().find(|e| e.label == comp_label) else {
+            return;
+        };
+        let cert_match = LineageMatch {
+            label: entry.label.clone(),
+            descriptive_name: entry.descriptive_name.clone(),
+            status: entry.status.clone(),
+            match_type: format!(
+                "Certified Sequence Match ({:.1}% id, {:+} stem SNPs, p={:.1e})",
+                support.identity_pct, support.net_stem_snps, support.p_value
+            ),
+            hxb2_barcode: entry.hxb2_barcode.clone(),
+        };
+        matches.retain(|m| {
+            !(m.label == entry.label && !m.match_type.starts_with("Homologous"))
+        });
+        matches.insert(0, cert_match);
+        matches.truncate(6);
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn build_epidemiological_map(
+        &self,
+        decision: &LineageCallDecision,
+        locus_scope: &str,
+        h_start: usize,
+        h_end: usize,
+        q_sub: &[i8],
+        first_idx: usize,
+        col_to_hxb2: &[usize],
+        basal_segs: &[SegmentCall],
+        cfg: &ScreeningConfig,
+    ) -> (String, String, Vec<SegmentCall>) {
+        let scope_suffix = match locus_scope {
+            "pol" => "@pol",
+            "env" => "@env",
+            "partial" => "@partial",
+            _ => "",
+        };
+        if decision.called_category != "URF" {
+            let lin = decision.called_lineage.clone();
+            let formula = format!("{}(Clonal){}", lin, scope_suffix);
+            let barcode = format!("{}:{}-{}", lin, h_start, h_end);
+            let segs = vec![SegmentCall {
+                seg_idx: 1,
+                trunk: lin,
+                hxb2_start: h_start,
+                hxb2_end: h_end,
+                span_nt: h_end - h_start + 1,
+                ci_hxb2_start: h_start,
+                ci_hxb2_end: h_end,
+                short_gene: hxb2_to_short_gene(h_start, h_end),
+                identity_pct: decision.call_support.identity_pct,
+            }];
+            return (formula, barcode, segs);
+        }
+
+        // URF: run 25-state epidemiological Viterbi segmentation
+        let gamma = cfg.gamma.unwrap_or(7.0);
+        let min_span_nt = cfg.min_span_nt.unwrap_or(if locus_scope == "full" {
+            120
+        } else {
+            150
+        });
+        let sub_len = q_sub.len();
+        let (mut epi_segs, _) = self.run_paff_viterbi_panel(
+            &self.epi_names,
+            &self.epi_mat,
+            &self.epi_penalties,
+            false,
+            q_sub,
+            first_idx,
+            col_to_hxb2,
+            sub_len,
+            gamma,
+            min_span_nt,
+            cfg.min_informative_snps,
+            cfg.p_fisher_thresh,
+        );
+
+        // If default gamma kept only 1 epi segment, try relaxed gamma/span or splice residual tract
+        if epi_segs.len() < 2 {
+            let (relaxed_segs, _) = self.run_paff_viterbi_panel(
+                &self.epi_names,
+                &self.epi_mat,
+                &self.epi_penalties,
+                false,
+                q_sub,
+                first_idx,
+                col_to_hxb2,
+                sub_len,
+                3.5,
+                80,
+                4,
+                0.01,
+            );
+            if relaxed_segs.len() >= 2 {
+                epi_segs = relaxed_segs;
+            }
+        }
+
+        if epi_segs.len() < 2 {
+            if let Some((base_lbl, rival_lbl, r_h0, r_h1)) = &decision.residual_tract {
+                let s0 = (*r_h0).max(h_start);
+                let s1 = (*r_h1).min(h_end);
+                if s1 > s0 {
+                    let mut spliced: Vec<(String, usize, usize)> = Vec::new();
+                    if s0.saturating_sub(h_start) >= 60 {
+                        spliced.push((base_lbl.clone(), h_start, s0 - 1));
+                        spliced.push((rival_lbl.clone(), s0, s1));
+                    } else {
+                        spliced.push((rival_lbl.clone(), h_start, s1));
+                    }
+                    if h_end.saturating_sub(s1) >= 60 {
+                        spliced.push((base_lbl.clone(), s1 + 1, h_end));
+                    } else if let Some(last) = spliced.last_mut() {
+                        last.2 = h_end;
+                    }
+                    if spliced.len() >= 2 {
+                        epi_segs = spliced
+                            .into_iter()
+                            .enumerate()
+                            .map(|(i, (trk, a, b))| SegmentCall {
+                                seg_idx: i + 1,
+                                trunk: trk,
+                                hxb2_start: a,
+                                hxb2_end: b,
+                                span_nt: b - a + 1,
+                                ci_hxb2_start: a,
+                                ci_hxb2_end: b,
+                                short_gene: hxb2_to_short_gene(a, b),
+                                identity_pct: decision.call_support.identity_pct,
+                            })
+                            .collect();
+                    }
+                }
+            } else if basal_segs.len() >= 2 {
+                epi_segs = basal_segs
+                    .iter()
+                    .enumerate()
+                    .map(|(i, s)| {
+                        let mut c = s.clone();
+                        c.seg_idx = i + 1;
+                        if c.trunk == "G0" {
+                            c.trunk = "G".to_string();
+                        }
+                        c
+                    })
+                    .collect();
+            }
+        }
+
+        let (epi_desc, _bb, _sf) = format_descriptive_name(&epi_segs, locus_scope);
+        let epi_bc = epi_segs
+            .iter()
+            .map(|s| format!("{}:{}-{}", s.trunk, s.hxb2_start, s.hxb2_end))
+            .collect::<Vec<_>>()
+            .join("|");
+        (epi_desc, epi_bc, epi_segs)
     }
 
     /// Match a sequence's structural formula, segment coordinates, and breakpoints against the 200-lineage compendium.
@@ -1926,6 +2916,27 @@ pub fn fisher_exact_greater(a: usize, b: usize, c: usize, d: usize) -> f64 {
         p_sum += log_p.exp();
     }
     p_sum.clamp(0.0, 1.0)
+}
+
+/// One-sided exact binomial test upper tail `P(Bin(n, 0.5) >= k)`.
+fn binom_upper_tail_half(k: usize, n: usize) -> f64 {
+    if k == 0 {
+        return 1.0;
+    }
+    if k > n || n == 0 {
+        return 0.0;
+    }
+    let log_n_fac = ln_gamma((n + 1) as f64);
+    let log_half_pow_n = -(n as f64) * std::f64::consts::LN_2;
+    let mut sum = 0.0f64;
+    for i in k..=n {
+        let log_p = log_n_fac
+            - ln_gamma((i + 1) as f64)
+            - ln_gamma((n - i + 1) as f64)
+            + log_half_pow_n;
+        sum += log_p.exp();
+    }
+    sum.clamp(0.0, 1.0)
 }
 
 /// Lanczos approximation for `ln(Gamma(z))`.
