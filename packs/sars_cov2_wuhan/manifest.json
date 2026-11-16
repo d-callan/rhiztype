@@ -1,6 +1,10 @@
 {
   "pathogen_name": "SARS-CoV-2",
   "reference_name": "Wuhan-Hu-1",
+  "pack_version": "2026.11-pango-sc2",
+  "snapshot_date": "2026-11-16",
+  "curation_sources": "NCBI RefSeq Wuhan-Hu-1 (NC_045512.2), Pango designation / Nextclade consensus profiles (11 parental waves + 11 X* recombinant profiles; XDV withheld for OOD validation)",
+  "certification_criteria": "4-gate guarded caller on Wuhan-Hu-1 coding coordinates (266..29674); default 5-SNP Fisher floor (p < 1e-4, gamma = 7.0) or CoV 4-SNP mode (min_snps = 3, p < 0.01, gamma = 3.5)",
   "ref_full_len": 29903,
   "coding_start": 266,
   "coding_end": 29674,

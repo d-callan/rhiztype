@@ -24,6 +24,22 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Setup Rust toolchain (wasm32)
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - name: Cache Rust build artifacts
+        uses: Swatinem/rust-cache@v2
+
+      - name: Install wasm-pack
+        uses: jetli/wasm-pack-action@v0.4.0
+        with:
+          version: "v0.13.1"
+
+      - name: Build fresh WASM bundle from crates/ and packs/
+        run: wasm-pack build crates/eggman-wasm --target web --out-dir ../../docs/pkg --out-name eggman_wasm
+
       - name: Setup Pages
         uses: actions/configure-pages@v5
 

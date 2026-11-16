@@ -1,6 +1,10 @@
 {
   "pathogen_name": "Sarbecovirus (Betacoronavirus)",
   "reference_name": "Wuhan-Hu-1",
+  "pack_version": "2026.11-wildlife-sarbeco",
+  "snapshot_date": "2026-11-16",
+  "curation_sources": "NCBI GenBank bat and pangolin Sarbecovirus whole genomes (N=79 valid assemblies after excluding 4 all-N placeholders; 5 basal trunks: SARS2_Wuhan, SARS1_HSZ, Bat_RpYN06, Bat_HKU3, Bat_BM48)",
+  "certification_criteria": "Tier-1 basal coordinate deconvolution across Wuhan-Hu-1 coding coordinates (266..29674)",
   "ref_full_len": 29904,
   "coding_start": 266,
   "coding_end": 29674,

@@ -148,6 +148,14 @@ pub struct PathogenSpec {
     pub epi_founder_penalty: f64,
     #[serde(default)]
     pub epi_certified_replacements: Vec<(String, String, String)>,
+    #[serde(default)]
+    pub pack_version: String,
+    #[serde(default)]
+    pub snapshot_date: String,
+    #[serde(default)]
+    pub curation_sources: String,
+    #[serde(default)]
+    pub certification_criteria: String,
 }
 
 impl PathogenSpec {
@@ -275,6 +283,10 @@ impl PathogenSpec {
                 "Subtype_G".to_string(),
                 "G".to_string(),
             )],
+            pack_version: "2026.11-lanl2023".to_string(),
+            snapshot_date: "2026-11-16".to_string(),
+            curation_sources: "LANL HIV Sequence Compendium 2023 (55 pure-subtype refs, 145 CRFs) + NCBI GenBank clinical census (278,829 sequences; 38 novel circulating clusters)".to_string(),
+            certification_criteria: "4-gate guarded caller: >=95% span coverage, binomial parent dominance (n_c - n_u >= 5), stem synapomorphies (net_stem >= 8, p <= 1e-4), and Kadane residual scan (< 80 nt / max S < 12)".to_string(),
         }
     }
 
@@ -4713,6 +4725,10 @@ mod pathogen_pack_tests {
             epi_founder_order: Vec::new(),
             epi_founder_penalty: 0.005,
             epi_certified_replacements: Vec::new(),
+            pack_version: "test".to_string(),
+            snapshot_date: "2026-11-16".to_string(),
+            curation_sources: String::new(),
+            certification_criteria: String::new(),
         };
 
         let anc = deterministic_dna(total_len, 0xCAFE_BABE_1234_5678);
@@ -4847,6 +4863,10 @@ mod pathogen_pack_tests {
             epi_founder_order: Vec::new(),
             epi_founder_penalty: 0.005,
             epi_certified_replacements: Vec::new(),
+            pack_version: "test".to_string(),
+            snapshot_date: "2026-11-16".to_string(),
+            curation_sources: String::new(),
+            certification_criteria: String::new(),
         };
 
         let anc = deterministic_dna(REF_LEN, 0x5A25_C0F2_2022_0001);

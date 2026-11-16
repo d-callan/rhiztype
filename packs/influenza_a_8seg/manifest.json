@@ -1,6 +1,10 @@
 {
   "pathogen_name": "Influenza A (2.3.4.4b H5N1 / LPAI)",
   "reference_name": "FluA-2.3.4.4b-8seg",
+  "pack_version": "2026.11-genoflu-sra",
+  "snapshot_date": "2026-11-16",
+  "curation_sources": "USDA APHIS GenoFLU 2.3.4.4b H5N1 reference constellations + NCBI Sequence Read Archive field surveillance (N=1,200 assemblies; 4 Eurasian + 6 North American donor profiles)",
+  "certification_criteria": "8-segment zero-penalty inter-segment transitions with intra-segment recombination lock; 4-gate guarded caller (note: C2.1 is catalogued in compendium.json but conservatively returns URF when EA2/EA1 surface stem SNPs < 8)",
   "ref_full_len": 13136,
   "coding_start": 1,
   "coding_end": 13136,

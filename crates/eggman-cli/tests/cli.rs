@@ -165,6 +165,10 @@ fn cli_pack_flag_classifies_influenza_reassortant() {
         epi_founder_order: Vec::new(),
         epi_founder_penalty: 0.005,
         epi_certified_replacements: Vec::new(),
+        pack_version: "test".to_string(),
+        snapshot_date: "2026-11-16".to_string(),
+        curation_sources: String::new(),
+        certification_criteria: String::new(),
     };
 
     const BASES: [u8; 4] = [b'A', b'C', b'G', b'T'];

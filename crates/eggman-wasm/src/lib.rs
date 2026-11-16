@@ -28,6 +28,11 @@ pub struct PathogenDetectionResult {
 #[derive(Debug, Clone, Serialize)]
 pub struct PackMetaPayload {
     pub pack_id: String,
+    pub engine_version: String,
+    pub pack_version: String,
+    pub snapshot_date: String,
+    pub curation_sources: String,
+    pub certification_criteria: String,
     pub pathogen_name: String,
     pub reference_name: String,
     pub ref_full_len: usize,
@@ -73,6 +78,11 @@ impl WasmEggman {
         let spec = eng.spec();
         PackMetaPayload {
             pack_id: canonical_id.to_string(),
+            engine_version: env!("CARGO_PKG_VERSION").to_string(),
+            pack_version: spec.pack_version.clone(),
+            snapshot_date: spec.snapshot_date.clone(),
+            curation_sources: spec.curation_sources.clone(),
+            certification_criteria: spec.certification_criteria.clone(),
             pathogen_name: spec.pathogen_name.clone(),
             reference_name: spec.reference_name.clone(),
             ref_full_len: spec.ref_full_len,

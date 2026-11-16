@@ -7,8 +7,8 @@ on:
 permissions:
   contents: read
 
-# docs/pkg is a committed wasm-pack artifact and is not checked here.
-# To rebuild it, run the wasm-pack command documented in README.md.
+# CI validates Rust tests and raw wasm32 compilation on every push/PR;
+# deploy-pages.yml rebuilds docs/pkg automatically via wasm-pack on pushes to main.
 
 jobs:
   test:

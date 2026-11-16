@@ -1130,8 +1130,8 @@
         <div class="walkthrough-steps-row">
           <div class="wt-step-tile">
             <div class="wt-step-num">STAGE 0</div>
-            <div class="wt-step-title">QA &amp; Flu Segment Stitching</div>
-            <div class="wt-step-desc">15-mer family detection + strain/disjoint grouping of 8 Flu RNA chromosomes.</div>
+            <div class="wt-step-title">QA, Auto-Detection &amp; Segment Assembly</div>
+            <div class="wt-step-desc">15-mer family detection + strain/disjoint grouping of 8 Flu RNA segments.</div>
           </div>
           <div class="wt-step-tile">
             <div class="wt-step-num">STAGE 1</div>
@@ -1150,8 +1150,8 @@
           </div>
         </div>
         <div class="tour-launch-row">
-          <button class="btn dark sm" onclick="startGuidedTour('flu_stitch')">▶ Tour 1: Raw 8-Seg Flu H5N1 Stitching (Cattle B3.13 &amp; Bird D1.1)</button>
-          <button class="btn dark sm" onclick="startGuidedTour('sc2_xec')">▶ Tour 2: SARS-CoV-2 Occult BA.2 &amp; 4-SNP Omicron XEC</button>
+          <button class="btn dark sm" onclick="startGuidedTour('flu_stitch')">▶ Tour 1: Raw 8-Segment H5N1 Assembly &amp; Cattle B3.13 Reassortment</button>
+          <button class="btn dark sm" onclick="startGuidedTour('sc2_xec')">▶ Tour 2: SARS-CoV-2 Recombinants, Misarchived BA.2 &amp; 4-SNP XEC</button>
           <button class="btn dark sm" onclick="startGuidedTour('hiv_discovery')">▶ Tour 3: HIV-1 Ancestral Subtype G0 Reference Scrubbing</button>
         </div>
       </div>
@@ -1199,12 +1199,12 @@
         <div class="detect-bars" id="s0DetectBars"></div>
       </div>
 
-      <!-- SEGMENTED INGESTION SIMPLIFIER (VISIBLE WHEN SEGMENTED / IAV ACTIVE) -->
+      <!-- SEGMENTED ASSEMBLY SIMPLIFIER (VISIBLE WHEN SEGMENTED / IAV ACTIVE) -->
       <div class="card hidden" id="segAssemblyCard" style="border-left: 4px solid var(--blue);">
         <div class="verdict-header" style="margin-bottom:10px;">
           <div>
-            <span class="badge blue" style="margin-bottom:4px;">8-SEGMENT INFLUENZA INGESTION</span>
-            <div style="font-size:15px;font-weight:700;" id="segAsmTitle">Segmented RNA Chromosome Assembly Matrix</div>
+            <span class="badge blue" style="margin-bottom:4px;">8-SEGMENT INFLUENZA ASSEMBLY</span>
+            <div style="font-size:15px;font-weight:700;" id="segAsmTitle">Segmented RNA Assembly Matrix</div>
             <div style="font-size:12.5px;color:var(--ink-secondary);" id="segAsmSubtitle"></div>
           </div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
@@ -1256,7 +1256,7 @@
         </div>
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;align-items:end;">
           <div>
-            <label class="control-group-label" style="display:block;">Switch Penalty γ (0=Default)</label>
+            <label class="control-group-label" style="display:block;">Switch Penalty γ (0 = pack default 7.0 nats)</label>
             <input type="number" class="input-field" style="width:100%;" id="paramGamma" value="0" min="0" max="40" step="0.5" />
           </div>
           <div>
@@ -1386,7 +1386,7 @@
         <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
           <div>
             <div style="font-size:14px;font-weight:700;">Verified Crossover &amp; Segment Junction Ledger</div>
-            <div style="font-size:12px;color:var(--ink-secondary);">Click any row to open the Stage 2 Fisher Proof Drawer.</div>
+            <div style="font-size:12px;color:var(--ink-secondary);">Click any row to open the Stage 2 Fisher Audit Drawer.</div>
           </div>
           <span class="badge" id="s2BpCount">0 junctions</span>
         </div>
@@ -1596,7 +1596,7 @@
         badgeClass: 'blue',
         gridLabel: '16 raw records → 2 isolates',
         title: 'Unconcatenated H5N1 Segments → B3.13 Cattle & D1.1 Bird',
-        desc: 'Simulates real NCBI/GISAID Influenza downloads where all 8 chromosomes arrive as unordered individual FASTA records. EGGMAN groups by strain and stitches exact segment scaffolds automatically.',
+        desc: 'Simulates real NCBI/GISAID Influenza downloads where all 8 RNA segments arrive as unordered individual FASTA records. EGGMAN groups by strain or disjoint 15-mer signatures and stitches exact segment scaffolds automatically.',
         callout: 'SRR31347644 → NAm_B313[EA1:PA+HA+NA+MP] (B3.13)',
         file: './examples/iav_raw_8segments.fasta',
         pack: 'auto',
@@ -1607,8 +1607,8 @@
         badgeClass: 'orange',
         gridLabel: '7 isolates × 13,136 nt',
         title: 'Avian & Dairy Cattle 8-Segment H5N1 Reassortment Cohort',
-        desc: 'Demonstrates zero-penalty inter-segment transitions across Eurasian clonal founders (A1, A3), cattle B3.13, wild-bird D1.1, B3.6, D1.8, and conservative C2.1 fallback.',
-        callout: 'D1.1: NAm_D1[EA3:PB1+HA+MP+NS] • B3.6: 3-donor mosaic',
+        desc: 'Demonstrates 0-nat inter-segment transitions across Eurasian clonal founders (A1, A3), cattle B3.13, wild-bird D1.1, B3.6, D1.8, and C2.1 (catalogued in the compendium, but conservatively returned as URF because EA2 and EA1 surface segments share fewer than 8 stem SNPs).',
+        callout: 'D1.1: NAm_D1[EA3:PB1+HA+MP+NS] • C2.1 → conservative URF',
         file: './examples/iav_reassortment.fasta',
         pack: 'auto',
       },
@@ -1617,9 +1617,9 @@
         badge: 'SARS-COV-2 RECOMB',
         badgeClass: 'purple',
         gridLabel: '7 clinical × 29,903 nt',
-        title: 'Omicron Recombinants, Occult BA.2 & 4-SNP XEC Rescue',
-        desc: 'Flags unindexed XDV cleanly, exposes PP272197 (submitted under Spike BA.2) as ORF1ab-recombined XBB.1.5, and shows low-SNP tuning rescuing 4-SNP XEC.',
-        callout: 'PP272197: BA.2 submission → BJ.1[BM.1.1.1:S..ORF10] (XBB.1.5)',
+        title: 'Omicron Recombinants, Misarchived BA.2 & 4-SNP XEC Rescue',
+        desc: 'Flags PQ287375.1 (Pango XDV, withheld from the 18-lineage compendium) as URF with coordinate barcode, identifies PP272197.1 (archived under BA.2) as ORF1ab-recombined XBB.1.5, and rescues 4-SNP XEC under CoV low-SNP tuning.',
+        callout: 'PP272197.1: BA.2 submission → BJ.1[BM.1.1.1:S..ORF10] (XBB.1.5)',
         file: './examples/sars_cov2_recomb.fasta',
         pack: 'auto',
       },
@@ -1682,27 +1682,27 @@
 
     const GUIDED_TOURS = {
       flu_stitch: {
-        title: 'Tour 1: 8-Segment H5N1 Ingestion & Reassortment',
+        title: 'Tour 1: Raw 8-Segment H5N1 Assembly & Cattle B3.13 Reassortment',
         file: './examples/iav_raw_8segments.fasta',
         pack: 'auto',
         params: { gamma: 0, minSpan: 0, minSnps: 5, pThresh: 1e-4, maskLoops: true, segMode: 'auto' },
         steps: {
           stage0: {
-            text: '16 separate segment records arrived in scrambled order. EGGMAN auto-detected Influenza A (8-Seg), grouped by strain headers into 2 complete isolates (Cattle B3.13 & Bird D1.1), and populated every PB2–NS slot.',
+            text: 'Initialized at standard default gates (γ = 7.0 nats, ≥5 SNPs, p < 1e-4). 16 separate segment records arrived in scrambled order. EGGMAN auto-detected Influenza A (8-Seg), grouped them by strain headers (or by disjoint segment 15-mer signatures when headers lack strain names) into 2 complete isolates (Cattle B3.13 & Bird D1.1), and populated every PB2–NS slot.',
             chips: [
               { label: '🔍 Inspect B3.13 8-Slot Provenance', fn: () => window.openStage0Drawer(0) },
               { label: '🔗 Try Keep-Records-Separate Mode', fn: () => window.setSegMode('per_record') },
             ]
           },
           stage1: {
-            text: 'Because Influenza sets inter-segment switching penalty γ = 0 nats and forbids intra-segment swaps, each RNA chromosome maps atomically. B3.13 reveals North American PB2+PB1+NP+NS paired with Eurasian EA1 PA+HA+NA+MP.',
+            text: 'In segmented mode, the pack manifest locks intra-segment recombination (10^6 nats) and sets inter-segment boundary transitions to 0 nats—independent of the contiguous switch penalty input (where 0 selects the pack default 7.0 nats). Each RNA segment maps atomically: B3.13 pairs North American PB2+PB1+NP+NS with Eurasian EA1 PA+HA+NA+MP.',
             chips: [
               { label: '🧬 Open B3.13 Guarded Clade Drawer', fn: () => window.openStage1Drawer(0) },
               { label: '🦅 Open D1.1 Wild-Bird Drawer', fn: () => window.openStage1Drawer(1) },
             ]
           },
           stage2: {
-            text: 'Each inter-segment donor switch is audited on physical concatenated coordinates (PB2: 1..2280 through NS: 12299..13136) with exact 2×2 Fisher SNP counts separating EA and NAm RNA chromosomes.',
+            text: 'Each inter-segment donor switch is audited on physical concatenated coordinates (PB2: 1..2280 through NS: 12299..13136) with exact 2×2 Fisher SNP counts separating EA and NAm RNA segments.',
             chips: [
               { label: '🔬 Inspect First Segment Switch (Fisher 2×2)', fn: () => window.openFirstBreakpointDrawer() },
             ]
@@ -1710,34 +1710,37 @@
           stage3: {
             text: 'Stage 3 compiles an auditable Dossier plus full 8-segment stitched FASTA download alongside the 10-genotype Influenza reference compendium.',
             chips: [
+              { label: '📄 Download Standalone HTML Dossier', fn: () => window.downloadHTMLDossier() },
               { label: '↓ Download Stitched 8-Seg FASTA', fn: () => window.downloadStitchedFasta() },
             ]
           }
         }
       },
       sc2_xec: {
-        title: 'Tour 2: SARS-CoV-2 Recombinants, Occult BA.2 & XEC',
+        title: 'Tour 2: SARS-CoV-2 Recombinants, Misarchived BA.2 & 4-SNP XEC',
         file: './examples/sars_cov2_recomb.fasta',
         pack: 'auto',
         params: { gamma: 0, minSpan: 0, minSnps: 5, pThresh: 1e-4, maskLoops: true, segMode: 'auto' },
         steps: {
           stage0: {
-            text: '7 unaligned 29.9-kb coronavirus genomes auto-detected cleanly into the SARS-CoV-2 Wuhan-Hu-1 pack. Notice how CoV-tuned sensitivity (γ=3.5, ≥3 SNPs) captures shallow 4-SNP Omicron splits like XEC!',
+            text: 'Initialized at standard default gates (γ = 7.0 nats, ≥5 SNPs, p < 1e-4). Seven unaligned 29.9-kb coronavirus genomes auto-detected into the SARS-CoV-2 Wuhan-Hu-1 pack. Under default gates, shallow 4-SNP Omicron splits like XEC (PV635430.1) remain conservatively unsplit; click the chip below to apply CoV 4-SNP tuning (γ = 3.5, ≥3 SNPs, p < 0.01) and rescue XEC.',
             chips: [
-              { label: '⚡ Apply CoV 4-SNP Tuning Now', fn: () => { window.applyParamPreset('cov_low'); window.reapplyParams(); } },
+              { label: '⚡ Apply CoV 4-SNP Tuning (Rescue XEC)', fn: () => { window.applyParamPreset('cov_low'); window.reapplyParams(); } },
             ]
           },
           stage1: {
-            text: 'Check PP272197.1 (submitted to GenBank solely under BA.2): EGGMAN’s ORF1ab coordinate projection exposes true XBB.1.5 ancestry! Meanwhile PQ287375 (unindexed XDV) returns an exact URF barcode BJ.1[JN.1:ORF1b..ORF10].',
+            text: 'Check PP272197.1 (submitted to GenBank solely under BA.2): EGGMAN’s ORF1ab coordinate projection supports XBB.1.5 ancestry. Meanwhile PQ287375.1 (Pango XDV, intentionally withheld from this pack’s 18-lineage compendium) is flagged as an uncatalogued recombinant (URF) with parental coordinate formula BJ.1[JN.1:ORF1b..ORF10].',
             chips: [
-              { label: '🔍 Inspect Occult BA.2 (PP272197)', fn: () => window.openStage1ByPrefix('PP272197') },
-              { label: '🏷 Inspect Unindexed XDV URF', fn: () => window.openStage1ByPrefix('PQ287375') },
+              { label: '🔍 Inspect Misarchived BA.2 (PP272197.1)', fn: () => window.openStage1ByPrefix('PP272197') },
+              { label: '🏷 Inspect Withheld XDV Coordinate Formula', fn: () => window.openStage1ByPrefix('PQ287375') },
+              { label: '⚡ Apply CoV 4-SNP Tuning (Rescue XEC)', fn: () => { window.applyParamPreset('cov_low'); window.reapplyParams(); } },
             ]
           },
           stage2: {
-            text: 'Look along Wuhan-Hu-1 ORF1a..ORF10: SARS-CoV-2 recombination junctions cluster sharply near ORF1b/S and Spike NTD. Switch to CoV 4-SNP mode on Stage 0 if XEC (PV635430) fell under the 5-SNP floor.',
+            text: 'Along Wuhan-Hu-1 ORF1a..ORF10, SARS-CoV-2 recombination junctions cluster near ORF1b/S and Spike NTD. Apply CoV 4-SNP tuning below if XEC (PV635430.1) remained below the default 5-SNP floor.',
             chips: [
-              { label: '🔬 Inspect Spike Breakpoint Proof', fn: () => window.openFirstBreakpointDrawer() },
+              { label: '🔬 Inspect Spike Breakpoint Fisher Audit', fn: () => window.openFirstBreakpointDrawer() },
+              { label: '⚡ Apply CoV 4-SNP Tuning (Rescue XEC)', fn: () => { window.applyParamPreset('cov_low'); window.reapplyParams(); } },
             ]
           },
           stage3: {
@@ -1749,34 +1752,34 @@
         }
       },
       hiv_discovery: {
-        title: 'Tour 3: HIV-1 Reference Scrubbing & Subtype G0',
+        title: 'Tour 3: HIV-1 Ancestral Subtype G0 Reference Scrubbing',
         file: './examples/subtype_g.fasta',
         pack: 'auto',
         params: { gamma: 0, minSpan: 0, minSnps: 5, pThresh: 1e-4, maskLoops: true, segMode: 'auto' },
         steps: {
           stage0: {
-            text: 'HIV-1 Group M is active on HXB2 coordinates (coding 790..9417) with unmasked drug-resistance codons in pol and loop masking toggled for hypervariable V1–V5 loops.',
+            text: 'Initialized at standard default gates (γ = 7.0 nats, ≥5 SNPs, p < 1e-4). HIV-1 Group M is active on HXB2 coordinates (coding 790..9417) with unmasked drug-resistance codons in pol and V1–V5 hypervariable loop masking enabled.',
             chips: [
               { label: '🔍 Inspect First Genome QA', fn: () => window.openStage0Drawer(0) },
             ]
           },
           stage1: {
-            text: 'Toggle Track View or open any Subtype G genome: Guarded Clade Calling preserves clinical Subtype_G(Clonal) identity, while the Basal Founder Track simultaneously exposes the ancient G0[A1:gp41..nef] mosaic!',
+            text: 'Toggle Track View or open any Subtype G genome: Guarded Clade Calling preserves clinical Subtype_G(Clonal) identity, while the Basal Founder Track supports the ancient G0[A1:gp41..nef] mosaic inside canonical Subtype G.',
             chips: [
               { label: '🧬 Toggle Basal Trunk Track', fn: () => window.setTrackMode('basal') },
               { label: '🔬 Inspect Dual G / G0 Forensic Drawer', fn: () => window.openStage1Drawer(0) },
             ]
           },
           stage2: {
-            text: 'Even when an isolate carries clonal clinical labels, Basal 14-trunk deconvolution proves its historical A1 envelope crossover across gp41..nef.',
+            text: 'Even when an isolate carries clonal clinical labels, Basal 14-trunk deconvolution reveals Fisher-supported evidence for its ancestral A1 envelope crossover across gp41..nef.',
             chips: [
               { label: '🔬 Open Fisher 2×2 Table', fn: () => window.openFirstBreakpointDrawer() },
             ]
           },
           stage3: {
-            text: 'Browse all 200 embedded HIV-1 Group M reference lineages (162 LANL clades + 38 newly unified circulating epidemics) in the Stage 3 Compendium table.',
+            text: 'Browse all 200 embedded HIV-1 Group M reference lineages (162 LANL clades + 38 newly unified circulating clusters) in the Stage 3 Compendium table.',
             chips: [
-              { label: '🔍 Filter NOVEL_CRF in Compendium', fn: () => { document.getElementById('atlasSearch').value = 'NOVEL'; window.renderAtlasTable(); } },
+              { label: '🔍 Filter All 38 Novel_Circulating Lineages', fn: () => { document.getElementById('atlasSearch').value = 'Novel_Circulating'; window.renderAtlasTable(); } },
             ]
           }
         }
@@ -2190,7 +2193,8 @@
         ? ` — Automatically stitched ${asm.raw_record_count} raw segment FASTA records into ${asm.isolate_count} coordinate-anchored isolate scaffold(s).`
         : '';
       document.getElementById('s0Headline').textContent = `${results.length} Isolate(s) Mapped to ${meta.pathogen_name} (${meta.reference_name})`;
-      document.getElementById('s0Subheadline').textContent = `Grid: ${meta.coding_start.toLocaleString()}..${meta.coding_end.toLocaleString()} nt across ${meta.landmarks.length} landmark(s)${segMsg}`;
+      const provTag = meta.pack_version ? ` • Pack v${meta.pack_version} (${meta.snapshot_date})` : '';
+      document.getElementById('s0Subheadline').textContent = `Grid: ${meta.coding_start.toLocaleString()}..${meta.coding_end.toLocaleString()} nt across ${meta.landmarks.length} landmark(s)${provTag}${segMsg}`;
 
       const meanCov = results.length
         ? (results.reduce((a, r) => a + r.mapped_coding_nt, 0) / results.length) / Math.max(1, meta.coding_end - meta.coding_start + 1) * 100
@@ -2200,7 +2204,7 @@
         <div class="kpi-box">
           <div class="metric-caption">Active Pathogen</div>
           <div class="metric-num small">${escapeHtml(PACK_LABELS[resp.active_pack] || meta.pathogen_name)}</div>
-          <div class="metric-sub">${meta.is_segmented ? '8-segment chromosome grid' : 'Contiguous genome grid'}</div>
+          <div class="metric-sub">${meta.is_segmented ? '8-segment grid' : 'Contiguous genome grid'} • ${escapeHtml(meta.pack_version || 'v0.2')}</div>
         </div>
         <div class="kpi-box">
           <div class="metric-caption">Admitted Isolates</div>
@@ -2588,11 +2592,13 @@
         </tr>
       `).join('');
       return `
-        <p style="margin-bottom:10px;">
+        <p style="margin-bottom:6px;">
           <strong>Pathogen Pack:</strong> ${escapeHtml(meta.pathogen_name)} (Reference <code>${escapeHtml(meta.reference_name)}</code>, ${meta.coding_start}..${meta.coding_end} nt) &bull;
+          <strong>Pack Version:</strong> <code>${escapeHtml(meta.pack_version || 'embedded')}</code> (${escapeHtml(meta.snapshot_date || '2026-11-16')}, Engine <code>${escapeHtml(meta.engine_version || '0.2')}</code>) &bull;
           <strong>Isolates Screened:</strong> ${results.length} (from ${resp.assembly?.raw_record_count || results.length} FASTA records) &bull;
           <strong>Runtime:</strong> ${state.elapsedMs.toFixed(1)} ms
         </p>
+        ${meta.curation_sources ? `<p style="font-size:12px;color:var(--ink-secondary);margin-bottom:10px;"><strong>Curation &amp; Certification Provenance:</strong> ${escapeHtml(meta.curation_sources)} &mdash; <em>${escapeHtml(meta.certification_criteria || '')}</em></p>` : ''}
         <div class="table-scroll">
           <table>
             <thead><tr><th>Isolate</th><th>Called Clade</th><th>Category</th><th>Epidemiological Formula</th><th>Basal Formula</th><th>BPs</th></tr></thead>
@@ -2630,7 +2636,7 @@
           }));
 
       const filtered = list.filter(c =>
-        `${c.label} ${c.descriptive_name} ${c.status} ${c.hxb2_barcode}`.toLowerCase().includes(q)
+        `${c.label} ${c.category || ''} ${c.descriptive_name} ${c.status} ${c.hxb2_barcode}`.toLowerCase().includes(q)
       );
 
       document.getElementById('atlasTableBody').innerHTML = filtered.map(c => {
@@ -2675,7 +2681,7 @@
       let segHtml = '';
       if (iso && iso.segments && meta.is_segmented) {
         segHtml = `
-          <div style="font-size:12px;font-weight:700;text-transform:uppercase;color:var(--ink-secondary);margin:14px 0 6px;">Segmented Chromosome Provenance (${iso.n_segments_present}/${iso.total_segments})</div>
+          <div style="font-size:12px;font-weight:700;text-transform:uppercase;color:var(--ink-secondary);margin:14px 0 6px;">Segmented Provenance (${iso.n_segments_present}/${iso.total_segments})</div>
           <div class="table-scroll">
             <table>
               <thead><tr><th>Seg</th><th>Ref Span</th><th>Mapped nt</th><th>Source Record Header</th></tr></thead>
@@ -2775,7 +2781,7 @@
       const b = r?.breakpoints?.[bIdx];
       if (!r || !b) return;
       const meta = resp.pack_meta;
-      openDrawer('STAGE 2 FISHER 2×2 BREAKPOINT PROOF', `${r.sequence_id} @ ${b.bp_hxb2}`, `
+      openDrawer('STAGE 2 FISHER 2×2 BREAKPOINT AUDIT', `${r.sequence_id} @ ${b.bp_hxb2}`, `
         <div class="kpi-grid" style="margin-bottom:14px;">
           <div class="kpi-box"><div class="metric-caption">Junction Position</div><div class="metric-num small">${escapeHtml(meta.reference_name)} ${b.bp_hxb2}</div></div>
           <div class="kpi-box"><div class="metric-caption">Fisher Exact p</div><div class="metric-num small" style="color:var(--green);">${b.p_fisher.toExponential(3)}</div></div>
@@ -2822,13 +2828,13 @@
         <p style="font-size:12.5px;color:var(--ink-secondary);margin-bottom:12px;">
           Every sequence receives both an invariant physical barcode projected onto clean non-mosaic basal trunks (e.g. <code>NAm_B313[EA1:PA+HA+NA+MP]</code> or <code>G0[A1:gp41..nef]</code>) and a statistical Tier-2 Guarded Clade Call that falls back cleanly to <code>URF</code> unless all 4 falsification gates pass.
         </p>
-        <h3 style="font-size:14px;margin-bottom:6px;">2. Segmented Influenza A Ingestion</h3>
+        <h3 style="font-size:14px;margin-bottom:6px;">2. Segmented Influenza A Assembly</h3>
         <p style="font-size:12.5px;color:var(--ink-secondary);margin-bottom:12px;">
-          Dropping 8 individual NCBI/GISAID RNA segment FASTA files (or one multi-FASTA containing separate PB2..NS records) automatically groups records by strain key or disjoint chromosome 15-mer signatures, trims non-coding tails cleanly via banded NW alignment, and prevents cross-segment coordinate bleed.
+          Dropping 8 individual NCBI/GISAID RNA segment FASTA files (or one multi-FASTA containing separate PB2..NS records) automatically groups records by strain key or disjoint segment 15-mer signatures, trims non-coding tails cleanly via banded NW alignment, and prevents cross-segment coordinate bleed. Note: genotype C2.1 is catalogued in the IAV compendium, but the guarded caller conservatively returns URF when EA2/EA1 surface segments share fewer than 8 diagnostic stem SNPs.
         </p>
-        <h3 style="font-size:14px;margin-bottom:6px;">3. Auto-Detection &amp; Pathogen Packs</h3>
+        <h3 style="font-size:14px;margin-bottom:6px;">3. Auto-Detection &amp; Pack Provenance</h3>
         <p style="font-size:12.5px;color:var(--ink-secondary);margin-bottom:12px;">
-          Four native pathogen packs are compiled directly into the WebAssembly binary: <strong>HIV-1 Group M</strong> (HXB2, 14 basal trunks, 200-lineage compendium), <strong>Influenza A 8-Seg H5N1</strong> (13,136 nt, zero inter-segment switch cost), <strong>SARS-CoV-2</strong> (Wuhan-Hu-1 29,903 nt), and <strong>Wildlife Sarbecoviruses</strong> (29,904 nt).
+          Four native pathogen packs are compiled directly into the WebAssembly binary (rebuilt automatically on push to <code>main</code> by GitHub Actions): <strong>HIV-1 Group M</strong> (HXB2, <code>2026.11-lanl2023</code>), <strong>Influenza A 8-Seg H5N1</strong> (<code>2026.11-genoflu-sra</code>), <strong>SARS-CoV-2</strong> (Wuhan-Hu-1, <code>2026.11-pango-sc2</code>), and <strong>Wildlife Sarbecoviruses</strong> (<code>2026.11-wildlife-sarbeco</code>).
         </p>
         <h3 style="font-size:14px;margin-bottom:6px;">4. Companion Resources</h3>
         <ul style="font-size:12.5px;color:var(--ink-secondary);padding-left:18px;">
