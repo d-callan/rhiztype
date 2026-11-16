@@ -821,6 +821,40 @@
     .seg-slot-pill.ok { background: var(--green-bg); color: var(--green); border: 1px solid var(--green-border); }
     .seg-slot-pill.miss { background: var(--bg-subtle); color: var(--ink-muted); border: 1px solid var(--border-subtle); }
 
+    .pager-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      padding: 10px 14px;
+      background: var(--bg-subtle);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      margin-top: 10px;
+      font-size: 12px;
+      color: var(--ink-secondary);
+    }
+    .pager-controls {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .filter-banner {
+      background: var(--orange-soft);
+      border: 1px solid rgba(224,79,22,0.35);
+      border-radius: 8px;
+      padding: 9px 14px;
+      margin-bottom: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+      font-size: 12.5px;
+    }
+
     /* =================================================================== */
     /* BARCODE CARDS & LEGEND                                              */
     /* =================================================================== */
@@ -1213,10 +1247,13 @@
         </div>
 
         <div class="control-group-label">Unconcatenated Segment Grouping Strategy</div>
-        <div class="segmented-pills" id="segModePills">
-          <button class="seg-pill active" data-segmode="auto">✨ Auto-Group by Strain / Disjoint Segments</button>
-          <button class="seg-pill" data-segmode="single_isolate">🔗 Force-Merge All Records into 1 Isolate</button>
-          <button class="seg-pill" data-segmode="per_record">📄 Keep Every FASTA Record Separate</button>
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:8px;">
+          <div class="segmented-pills" id="segModePills" style="margin-bottom:0;">
+            <button class="seg-pill active" data-segmode="auto">✨ Auto-Group by Strain / Disjoint Segments</button>
+            <button class="seg-pill" data-segmode="single_isolate">🔗 Force-Merge All Records into 1 Isolate</button>
+            <button class="seg-pill" data-segmode="per_record">📄 Keep Every FASTA Record Separate</button>
+          </div>
+          <input type="text" class="input-field search" id="s0SegSearch" placeholder="Filter assembled isolate ID…" />
         </div>
 
         <div class="table-scroll">
@@ -1239,6 +1276,7 @@
             <tbody id="segMatrixBody"></tbody>
           </table>
         </div>
+        <div id="s0SegPager"></div>
       </div>
 
       <!-- PARAMETERS BAR -->
@@ -1295,7 +1333,10 @@
             <div style="font-size:14px;font-weight:700;">Isolate Coordinate Projection QA</div>
             <div style="font-size:12px;color:var(--ink-secondary);">Click any row to open the Stage 0 Isolate QA Inspector Drawer.</div>
           </div>
-          <span class="badge" id="s0QaCount">0 isolates</span>
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <input type="text" class="input-field search" id="s0QaSearch" placeholder="Filter isolate, clade, alignment…" />
+            <span class="badge" id="s0QaCount">0 isolates</span>
+          </div>
         </div>
         <div class="table-scroll">
           <table>
@@ -1312,6 +1353,7 @@
             <tbody id="s0QaTableBody"></tbody>
           </table>
         </div>
+        <div id="s0QaPager"></div>
       </div>
     </section>
 
@@ -1342,15 +1384,78 @@
           <button class="seg-pill" data-s1cat="urf" onclick="setS1Filter('urf')">Novel URF</button>
         </div>
         <div class="toolbar-group">
-          <span class="control-group-label" style="margin:0;">Track View:</span>
-          <button class="seg-pill active" id="trackModeEpi" onclick="setTrackMode('epi')">Epidemiological + Basal</button>
-          <button class="seg-pill" id="trackModeBasal" onclick="setTrackMode('basal')">Basal Trunks Only</button>
+          <div class="segmented-pills" id="s1ViewModePills" style="margin-bottom:0;">
+            <button class="seg-pill active" data-s1view="groups" onclick="setS1ViewMode('groups')">📊 Cohort Groups</button>
+            <button class="seg-pill" data-s1view="table" onclick="setS1ViewMode('table')">📋 Compact Table</button>
+            <button class="seg-pill" data-s1view="cards" onclick="setS1ViewMode('cards')">🧬 Detailed Cards</button>
+          </div>
+          <span class="control-group-label" style="margin:0 0 0 6px;">Track:</span>
+          <button class="seg-pill active" id="trackModeEpi" onclick="setTrackMode('epi')">Epi + Basal</button>
+          <button class="seg-pill" id="trackModeBasal" onclick="setTrackMode('basal')">Basal</button>
         </div>
       </div>
 
       <div class="legend-bar" id="legendBar"></div>
 
+      <div class="filter-banner hidden" id="s1GroupFilterBanner"></div>
+
+      <!-- COHORT ARCHITECTURE ROLLUP CARD -->
+      <div class="card" id="s1CohortRollupCard">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
+          <div>
+            <div style="font-size:14px;font-weight:700;">Cohort Lineage &amp; Mosaic Architecture Summary</div>
+            <div style="font-size:12px;color:var(--ink-secondary);">Aggregated by called clade and coordinate formula. Click any architecture row to drill down into its isolates.</div>
+          </div>
+          <span class="badge" id="s1GroupCount">0 architectures</span>
+        </div>
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>Count</th>
+                <th>Share</th>
+                <th>Lineage / Status</th>
+                <th>Coordinate Formula</th>
+                <th>Mean Mapped</th>
+                <th>Mean BPs</th>
+                <th>Representative Architecture</th>
+              </tr>
+            </thead>
+            <tbody id="s1GroupBody"></tbody>
+          </table>
+        </div>
+        <div id="s1GroupPager"></div>
+      </div>
+
+      <!-- PAGINATED COMPACT ISOLATE TABLE -->
+      <div class="card hidden" id="s1CompactTableCard">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
+          <div>
+            <div style="font-size:14px;font-weight:700;">Paginated Isolate Classification Table</div>
+            <div style="font-size:12px;color:var(--ink-secondary);">Click any isolate row to inspect guarded clade checks and segment tables in the forensic drawer.</div>
+          </div>
+          <span class="badge" id="s1IsoCountBadge">0 isolates</span>
+        </div>
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>Isolate ID</th>
+                <th>Scope</th>
+                <th>Called Clade</th>
+                <th>Formula</th>
+                <th>Coordinate Barcode</th>
+                <th>Support / BPs</th>
+              </tr>
+            </thead>
+            <tbody id="s1CompactBody"></tbody>
+          </table>
+        </div>
+        <div id="s1TablePager"></div>
+      </div>
+
       <div id="resultsContainer"></div>
+      <div id="s1CardsPager"></div>
     </section>
 
     <!-- ================================================================= -->
@@ -1374,8 +1479,8 @@
       <div class="card">
         <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:8px;">
           <div>
-            <div style="font-size:14px;font-weight:700;">Genome-Wide Breakpoint &amp; Plateau Horizon</div>
-            <div style="font-size:12px;color:var(--ink-secondary);">Hover or click any junction marker to inspect the 2&times;2 Fisher contingency table separating parent alleles.</div>
+            <div style="font-size:14px;font-weight:700;">Genome-Wide Breakpoint Density &amp; Mosaic Architecture Horizon</div>
+            <div style="font-size:12px;color:var(--ink-secondary);" id="s2HorizonSubtitle">60-bin density histogram paired with mosaic isolate tracks. Click any junction marker to inspect the 2&times;2 Fisher contingency table.</div>
           </div>
           <span class="badge mono" id="s2GridSpanBadge">—</span>
         </div>
@@ -1383,28 +1488,27 @@
       </div>
 
       <div class="card">
-        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:10px;">
           <div>
             <div style="font-size:14px;font-weight:700;">Verified Crossover &amp; Segment Junction Ledger</div>
             <div style="font-size:12px;color:var(--ink-secondary);">Click any row to open the Stage 2 Fisher Audit Drawer.</div>
           </div>
-          <span class="badge" id="s2BpCount">0 junctions</span>
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <input type="text" class="input-field search" id="s2Search" placeholder="Filter isolate, donor transition, coord…" />
+            <div class="segmented-pills" id="s2ViewModePills" style="margin-bottom:0;">
+              <button class="seg-pill active" data-s2view="hotspots" onclick="setS2ViewMode('hotspots')">🔥 Grouped Hotspots</button>
+              <button class="seg-pill" data-s2view="all" onclick="setS2ViewMode('all')">📋 All Junctions</button>
+            </div>
+            <span class="badge" id="s2BpCount">0 junctions</span>
+          </div>
         </div>
         <div class="table-scroll">
           <table>
-            <thead>
-              <tr>
-                <th>Isolate ID</th>
-                <th>Position</th>
-                <th>Transition</th>
-                <th>Plateau CI (Width)</th>
-                <th>2&times;2 Allelic SNP Counts</th>
-                <th>p_Fisher</th>
-              </tr>
-            </thead>
+            <thead id="s2BpTableHead"></thead>
             <tbody id="s2BpTableBody"></tbody>
           </table>
         </div>
+        <div id="s2Pager"></div>
       </div>
     </section>
 
@@ -1457,6 +1561,7 @@
             <tbody id="atlasTableBody"></tbody>
           </table>
         </div>
+        <div id="atlasPager"></div>
       </div>
     </section>
   </main>
@@ -1798,6 +1903,24 @@
       segMode: 'auto',
       trackMode: 'epi',
       s1Filter: 'all',
+      s0QaPage: 1,
+      s0QaPageSize: 25,
+      s0QaSearch: '',
+      s0SegPage: 1,
+      s0SegPageSize: 25,
+      s0SegSearch: '',
+      s1ViewMode: 'auto',
+      s1GroupFilter: null,
+      s1GroupPage: 1,
+      s1GroupPageSize: 15,
+      s1Page: 1,
+      s1PageSize: 25,
+      s2ViewMode: 'auto',
+      s2Page: 1,
+      s2PageSize: 50,
+      s2Search: '',
+      s3AtlasPage: 1,
+      s3AtlasPageSize: 100,
       rawFasta: '',
       packMetas: {},
       response: null,
@@ -1806,6 +1929,30 @@
       walkthroughTourId: null,
       fallbackMainEngine: null,
     };
+
+    function renderPager(totalItems, page, pageSize, pageFnName, sizeFnName = null, sizeOpts = [25, 50, 100]) {
+      const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+      const safePage = Math.min(Math.max(1, page), totalPages);
+      if (totalItems <= Math.min(...sizeOpts)) return '';
+      const start = (safePage - 1) * pageSize + 1;
+      const end = Math.min(totalItems, safePage * pageSize);
+      const sizeSelect = sizeFnName
+        ? `<select class="input-field" style="padding:3px 7px;font-size:11px;" onchange="${sizeFnName}(Number(this.value))">${sizeOpts.map(s => `<option value="${s}" ${s === pageSize ? 'selected' : ''}>${s} / page</option>`).join('')}</select>`
+        : '';
+      return `
+        <div class="pager-bar">
+          <div class="mono">Showing <strong>${start.toLocaleString()}–${end.toLocaleString()}</strong> of <strong>${totalItems.toLocaleString()}</strong></div>
+          <div class="pager-controls">
+            ${sizeSelect}
+            <button class="btn sm" ${safePage <= 1 ? 'disabled' : ''} onclick="${pageFnName}(1)">« First</button>
+            <button class="btn sm" ${safePage <= 1 ? 'disabled' : ''} onclick="${pageFnName}(${safePage - 1})">‹ Prev</button>
+            <span class="mono" style="padding:0 6px;">Page <strong>${safePage}</strong> / ${totalPages}</span>
+            <button class="btn sm" ${safePage >= totalPages ? 'disabled' : ''} onclick="${pageFnName}(${safePage + 1})">Next ›</button>
+            <button class="btn sm" ${safePage >= totalPages ? 'disabled' : ''} onclick="${pageFnName}(${totalPages})">Last »</button>
+          </div>
+        </div>
+      `;
+    }
 
     let activeWorker = null;
     let reqCounter = 1;
@@ -1915,6 +2062,22 @@
     window.flushAnalysisResults = function(fromStage) {
       if (fromStage <= 0) {
         state.response = null;
+        state.s0QaPage = 1;
+        state.s0SegPage = 1;
+        state.s0QaSearch = '';
+        state.s0SegSearch = '';
+        state.s1ViewMode = 'auto';
+        state.s1GroupFilter = null;
+        state.s1GroupPage = 1;
+        state.s1Page = 1;
+        state.s2ViewMode = 'auto';
+        state.s2Page = 1;
+        state.s2Search = '';
+        state.s3AtlasPage = 1;
+        ['s0SegSearch', 's0QaSearch', 's1Search', 's2Search'].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.value = '';
+        });
         for (let i = 0; i <= 3; i++) {
           const btn = document.getElementById(`stepBtn${i}`);
           const badge = document.getElementById(`stepBadge${i}`);
@@ -1924,6 +2087,10 @@
         }
         closeDrawer();
       } else {
+        state.s1GroupFilter = null;
+        state.s1GroupPage = 1;
+        state.s1Page = 1;
+        state.s2Page = 1;
         for (let i = fromStage; i <= 3; i++) {
           const btn = document.getElementById(`stepBtn${i}`);
           const badge = document.getElementById(`stepBadge${i}`);
@@ -2252,7 +2419,17 @@
         `;
       }).join('');
 
-      // Segmented Influenza Matrix
+      // Segmented Influenza Matrix (searchable + paginated)
+      renderStage0Tables();
+    }
+
+    function renderStage0Tables() {
+      const resp = state.response;
+      if (!resp) return;
+      const meta = resp.pack_meta;
+      const asm = resp.assembly || {};
+      const results = resp.results || [];
+
       const segCard = document.getElementById('segAssemblyCard');
       if (meta.is_segmented) {
         segCard.classList.remove('hidden');
@@ -2265,7 +2442,15 @@
         document.getElementById('segAsmSubtitle').textContent =
           'Individual RNA segments (including out-of-order GenBank segments or reverse-complement vRNA) are coordinate-anchored into exact 13,136 nt scaffolds without cross-segment coordinate bleed.';
 
-        document.getElementById('segMatrixBody').innerHTML = (asm.isolates || []).map((iso, idx) => {
+        const segQ = (state.s0SegSearch || '').toLowerCase();
+        const isoList = (asm.isolates || [])
+          .map((iso, idx) => ({ iso, idx }))
+          .filter(({ iso }) => !segQ || iso.isolate_id.toLowerCase().includes(segQ));
+        const totalSegPages = Math.max(1, Math.ceil(isoList.length / state.s0SegPageSize));
+        state.s0SegPage = Math.min(Math.max(1, state.s0SegPage), totalSegPages);
+        const segSlice = isoList.slice((state.s0SegPage - 1) * state.s0SegPageSize, state.s0SegPage * state.s0SegPageSize);
+
+        document.getElementById('segMatrixBody').innerHTML = segSlice.map(({ iso, idx }) => {
           const slotCells = (iso.segments || []).map(s => {
             const tip = s.source_header ? `Source: ${s.source_header}` : 'Missing segment';
             return `<td><span class="seg-slot-pill ${s.present ? 'ok' : 'miss'}" title="${escapeHtml(tip)}">${s.present ? `${s.mapped_nt}nt` : '—'}</span></td>`;
@@ -2279,13 +2464,22 @@
             </tr>
           `;
         }).join('');
+        document.getElementById('s0SegPager').innerHTML = renderPager(isoList.length, state.s0SegPage, state.s0SegPageSize, 'setS0SegPage', 'setS0SegPageSize');
       } else {
         segCard.classList.add('hidden');
       }
 
-      // QA Table
-      document.getElementById('s0QaCount').textContent = `${results.length} isolate${results.length === 1 ? '' : 's'}`;
-      document.getElementById('s0QaTableBody').innerHTML = results.map((r, idx) => {
+      // QA Table (searchable + paginated)
+      const qaQ = (state.s0QaSearch || '').toLowerCase();
+      const qaList = results
+        .map((r, idx) => ({ r, idx }))
+        .filter(({ r }) => !qaQ || `${r.sequence_id} ${r.called_lineage} ${r.locus_scope} ${r.alignment_mode}`.toLowerCase().includes(qaQ));
+      document.getElementById('s0QaCount').textContent = `${qaList.length.toLocaleString()} isolate${qaList.length === 1 ? '' : 's'}`;
+      const totalQaPages = Math.max(1, Math.ceil(qaList.length / state.s0QaPageSize));
+      state.s0QaPage = Math.min(Math.max(1, state.s0QaPage), totalQaPages);
+      const qaSlice = qaList.slice((state.s0QaPage - 1) * state.s0QaPageSize, state.s0QaPage * state.s0QaPageSize);
+
+      document.getElementById('s0QaTableBody').innerHTML = qaSlice.map(({ r, idx }) => {
         const badgeClass = (r.n_segments === 0 || r.called_category === 'Unclassifiable')
           ? 'danger'
           : (r.called_category === 'URF' ? 'orange' : 'green');
@@ -2300,7 +2494,13 @@
           </tr>
         `;
       }).join('');
+      document.getElementById('s0QaPager').innerHTML = renderPager(qaList.length, state.s0QaPage, state.s0QaPageSize, 'setS0QaPage', 'setS0QaPageSize');
     }
+
+    window.setS0SegPage = function(p) { state.s0SegPage = p; renderStage0Tables(); };
+    window.setS0SegPageSize = function(sz) { state.s0SegPageSize = sz; state.s0SegPage = 1; renderStage0Tables(); };
+    window.setS0QaPage = function(p) { state.s0QaPage = p; renderStage0Tables(); };
+    window.setS0QaPageSize = function(sz) { state.s0QaPageSize = sz; state.s0QaPage = 1; renderStage0Tables(); };
 
     window.overridePackFromStage = function(packId) {
       setSelectedPack(packId);
@@ -2376,6 +2576,38 @@
       filterAndDrawStage1Cards();
     }
 
+    function computeStage1Groups(items, meta) {
+      const groupMap = new Map();
+      for (const { r, idx } of items) {
+        const cat = r.called_category || (r.is_clonal ? 'Pure_Subtype' : 'URF');
+        const lin = r.called_lineage || r.backbone_trunk;
+        const epiFormula = r.epidemiological_formula || r.descriptive_name;
+        const bc = state.trackMode === 'basal' ? r.hxb2_barcode : (r.epidemiological_barcode || r.hxb2_barcode);
+        const key = `${lin}|${cat}|${epiFormula}|${bc}`;
+        if (!groupMap.has(key)) {
+          groupMap.set(key, {
+            key,
+            lin,
+            cat,
+            epiFormula,
+            bc,
+            repIdx: idx,
+            repResult: r,
+            count: 0,
+            sumMapped: 0,
+            sumBps: 0,
+            indices: [],
+          });
+        }
+        const g = groupMap.get(key);
+        g.count += 1;
+        g.sumMapped += r.mapped_coding_nt || 0;
+        g.sumBps += r.n_breakpoints || 0;
+        g.indices.push(idx);
+      }
+      return Array.from(groupMap.values()).sort((a, b) => b.count - a.count || a.lin.localeCompare(b.lin));
+    }
+
     function filterAndDrawStage1Cards() {
       const resp = state.response;
       if (!resp) return;
@@ -2383,7 +2615,7 @@
       const results = resp.results || [];
       const q = (document.getElementById('s1Search').value || '').toLowerCase();
 
-      const filtered = results.map((r, idx) => ({ r, idx })).filter(({ r }) => {
+      const catFiltered = results.map((r, idx) => ({ r, idx })).filter(({ r }) => {
         const cat = r.called_category || (r.is_clonal ? 'Pure_Subtype' : 'URF');
         const isUrf = cat === 'URF';
         const isUnclass = r.n_segments === 0 || cat === 'Unclassifiable';
@@ -2399,13 +2631,135 @@
         return true;
       });
 
-      const container = document.getElementById('resultsContainer');
-      if (!filtered.length) {
-        container.innerHTML = '<div class="card">No isolates match the active filter.</div>';
+      const effectiveView = state.s1ViewMode === 'auto'
+        ? (results.length > 15 ? 'table' : 'cards')
+        : state.s1ViewMode;
+
+      document.querySelectorAll('[data-s1view]').forEach(b => {
+        b.classList.toggle('active', b.dataset.s1view === effectiveView);
+      });
+
+      // Compute architecture rollup groups
+      const groups = computeStage1Groups(catFiltered, meta);
+      const rollupCard = document.getElementById('s1CohortRollupCard');
+      const compactCard = document.getElementById('s1CompactTableCard');
+      const cardsContainer = document.getElementById('resultsContainer');
+      const cardsPager = document.getElementById('s1CardsPager');
+      const filterBanner = document.getElementById('s1GroupFilterBanner');
+
+      // Show Rollup card when explicitly in 'groups' view OR whenever cohort > 15 sequences
+      const showRollup = effectiveView === 'groups' || results.length > 15;
+      rollupCard.classList.toggle('hidden', !showRollup);
+
+      if (showRollup) {
+        document.getElementById('s1GroupCount').textContent = `${groups.length} architecture${groups.length === 1 ? '' : 's'}`;
+        const totalGrpPages = Math.max(1, Math.ceil(groups.length / state.s1GroupPageSize));
+        state.s1GroupPage = Math.min(Math.max(1, state.s1GroupPage), totalGrpPages);
+        const gSlice = groups.slice((state.s1GroupPage - 1) * state.s1GroupPageSize, state.s1GroupPage * state.s1GroupPageSize);
+        const denom = Math.max(1, catFiltered.length);
+
+        document.getElementById('s1GroupBody').innerHTML = gSlice.length
+          ? gSlice.map(g => {
+              const pct = ((g.count / denom) * 100).toFixed(1);
+              const meanMap = Math.round(g.sumMapped / g.count);
+              const meanBps = (g.sumBps / g.count).toFixed(1);
+              const badgeCls = g.cat === 'Unclassifiable' ? 'danger' : (g.cat === 'URF' ? 'orange' : 'green');
+              const recurrentTag = (g.cat === 'URF' && g.count >= 3)
+                ? `<br><span class="badge amber" style="margin-top:3px;">Recurrent Novel URF Cluster (N=${g.count})</span>`
+                : '';
+              const encKey = encodeURIComponent(g.key);
+              const isSelected = state.s1GroupFilter === g.key;
+              return `
+                <tr class="clickable" style="${isSelected ? 'background:var(--orange-soft);' : ''}" onclick="selectS1Group(decodeURIComponent('${encKey}'))">
+                  <td class="num" style="font-weight:700;">${g.count.toLocaleString()}</td>
+                  <td class="num">${pct}%</td>
+                  <td><span class="badge ${badgeCls}">${escapeHtml(g.lin)} [${escapeHtml(g.cat.replace(/_/g, ' '))}]</span>${recurrentTag}</td>
+                  <td class="mono" style="font-size:11.5px;color:var(--orange);font-weight:600;max-width:240px;word-break:break-word;">${escapeHtml(g.epiFormula)}</td>
+                  <td class="num">${meanMap.toLocaleString()} nt</td>
+                  <td class="num">${meanBps}</td>
+                  <td style="min-width:250px;">${renderBarcodeSVG(g.bc, meta, 280, false, true)}</td>
+                </tr>
+              `;
+            }).join('')
+          : '<tr><td colspan="7" style="text-align:center;color:var(--ink-muted);padding:16px;">No architectures match active filter.</td></tr>';
+        document.getElementById('s1GroupPager').innerHTML = renderPager(groups.length, state.s1GroupPage, state.s1GroupPageSize, 'setS1GroupPage', 'setS1GroupPageSize', [15, 30, 50]);
+      }
+
+      // Filter isolates by active clicked group if set
+      let isoFiltered = catFiltered;
+      if (state.s1GroupFilter) {
+        const matchedGrp = groups.find(g => g.key === state.s1GroupFilter);
+        if (matchedGrp) {
+          const allowed = new Set(matchedGrp.indices);
+          isoFiltered = catFiltered.filter(x => allowed.has(x.idx));
+          filterBanner.classList.remove('hidden');
+          filterBanner.innerHTML = `
+            <div><strong>Filtered to architecture:</strong> <code>${escapeHtml(matchedGrp.lin)}</code> &mdash; <code>${escapeHtml(matchedGrp.epiFormula)}</code> (${isoFiltered.length.toLocaleString()} isolate${isoFiltered.length === 1 ? '' : 's'})</div>
+            <button class="btn sm" onclick="clearS1GroupFilter()">✕ Show All ${catFiltered.length.toLocaleString()} Isolates</button>
+          `;
+        } else {
+          state.s1GroupFilter = null;
+          filterBanner.classList.add('hidden');
+        }
+      } else {
+        filterBanner.classList.add('hidden');
+      }
+
+      if (effectiveView === 'groups') {
+        compactCard.classList.add('hidden');
+        cardsContainer.innerHTML = '';
+        cardsPager.innerHTML = '';
         return;
       }
 
-      container.innerHTML = filtered.map(({ r, idx }) => {
+      if (effectiveView === 'table') {
+        compactCard.classList.remove('hidden');
+        cardsContainer.innerHTML = '';
+        cardsPager.innerHTML = '';
+        document.getElementById('s1IsoCountBadge').textContent = `${isoFiltered.length.toLocaleString()} isolate${isoFiltered.length === 1 ? '' : 's'}`;
+
+        const totalPages = Math.max(1, Math.ceil(isoFiltered.length / state.s1PageSize));
+        state.s1Page = Math.min(Math.max(1, state.s1Page), totalPages);
+        const pageSlice = isoFiltered.slice((state.s1Page - 1) * state.s1PageSize, state.s1Page * state.s1PageSize);
+
+        document.getElementById('s1CompactBody').innerHTML = pageSlice.length
+          ? pageSlice.map(({ r, idx }) => {
+              const cat = r.called_category || (r.is_clonal ? 'Pure_Subtype' : 'URF');
+              const lin = r.called_lineage || r.backbone_trunk;
+              const pillClass = (r.n_segments === 0 || cat === 'Unclassifiable') ? 'danger' : (cat === 'URF' ? 'orange' : 'green');
+              const bc = state.trackMode === 'basal' ? r.hxb2_barcode : (r.epidemiological_barcode || r.hxb2_barcode);
+              const sup = r.call_support;
+              const supShort = sup ? `${sup.identity_pct.toFixed(1)}% • ${r.n_breakpoints} BPs` : `${r.n_breakpoints} BPs`;
+              return `
+                <tr class="clickable" onclick="openStage1Drawer(${idx})">
+                  <td class="mono" style="font-weight:600;max-width:210px;word-break:break-all;">${escapeHtml(r.sequence_id)}</td>
+                  <td><span class="badge blue">${escapeHtml(r.locus_scope)}</span></td>
+                  <td><span class="badge ${pillClass}">${escapeHtml(lin)}</span></td>
+                  <td class="mono" style="font-size:11.5px;color:var(--orange);font-weight:600;max-width:240px;word-break:break-word;">${escapeHtml(r.epidemiological_formula || r.descriptive_name)}</td>
+                  <td style="min-width:250px;">${renderBarcodeSVG(bc, meta, 280, false, true)}</td>
+                  <td class="num" style="font-size:11.5px;">${escapeHtml(supShort)}</td>
+                </tr>
+              `;
+            }).join('')
+          : '<tr><td colspan="6" style="text-align:center;color:var(--ink-muted);padding:18px;">No isolates match the active filter.</td></tr>';
+        document.getElementById('s1TablePager').innerHTML = renderPager(isoFiltered.length, state.s1Page, state.s1PageSize, 'setS1Page', 'setS1PageSize');
+        return;
+      }
+
+      // Detailed Cards view (capped per page to prevent SVG/DOM blowup)
+      compactCard.classList.add('hidden');
+      if (!isoFiltered.length) {
+        cardsContainer.innerHTML = '<div class="card">No isolates match the active filter.</div>';
+        cardsPager.innerHTML = '';
+        return;
+      }
+
+      const cardPageSize = Math.min(state.s1PageSize, 50);
+      const totalCardPages = Math.max(1, Math.ceil(isoFiltered.length / cardPageSize));
+      state.s1Page = Math.min(Math.max(1, state.s1Page), totalCardPages);
+      const cardSlice = isoFiltered.slice((state.s1Page - 1) * cardPageSize, state.s1Page * cardPageSize);
+
+      cardsContainer.innerHTML = cardSlice.map(({ r, idx }) => {
         const cat = r.called_category || (r.is_clonal ? 'Pure_Subtype' : 'URF');
         const lin = r.called_lineage || r.backbone_trunk;
         const pillClass = (r.n_segments === 0 || cat === 'Unclassifiable')
@@ -2456,10 +2810,28 @@
           </div>
         `;
       }).join('');
+      cardsPager.innerHTML = renderPager(isoFiltered.length, state.s1Page, cardPageSize, 'setS1Page', 'setS1PageSize', [25, 50]);
     }
+
+    window.setS1ViewMode = function(mode) { state.s1ViewMode = mode; state.s1Page = 1; filterAndDrawStage1Cards(); };
+    window.setS1Page = function(p) { state.s1Page = p; filterAndDrawStage1Cards(); window.scrollTo({ top: 0, behavior: 'smooth' }); };
+    window.setS1PageSize = function(sz) { state.s1PageSize = sz; state.s1Page = 1; filterAndDrawStage1Cards(); };
+    window.setS1GroupPage = function(p) { state.s1GroupPage = p; filterAndDrawStage1Cards(); };
+    window.setS1GroupPageSize = function(sz) { state.s1GroupPageSize = sz; state.s1GroupPage = 1; filterAndDrawStage1Cards(); };
+    window.selectS1Group = function(key) {
+      state.s1GroupFilter = (state.s1GroupFilter === key) ? null : key;
+      state.s1Page = 1;
+      if (state.s1GroupFilter && state.s1ViewMode === 'groups') {
+        state.s1ViewMode = 'table';
+      }
+      filterAndDrawStage1Cards();
+    };
+    window.clearS1GroupFilter = function() { state.s1GroupFilter = null; state.s1Page = 1; filterAndDrawStage1Cards(); };
 
     window.setS1Filter = function(cat) {
       state.s1Filter = cat;
+      state.s1Page = 1;
+      state.s1GroupPage = 1;
       document.querySelectorAll('[data-s1cat]').forEach(b => b.classList.toggle('active', b.dataset.s1cat === cat));
       filterAndDrawStage1Cards();
     };
@@ -2516,36 +2888,89 @@
         <div class="kpi-box"><div class="metric-caption">Top Donor Transition</div><div class="metric-num small">${escapeHtml(topPair)}</div><div class="metric-sub">${topPairN ? `${topPairN} junction(s)` : 'Clonal cohort'}</div></div>
       `;
 
-      // Horizon SVG
+      // Scalable Horizon SVG: 60-bin Density Histogram + Top-20 Grouped Architecture Tracks (<= 20 rows)
       const W = 940;
       const cStart = meta.coding_start || 1;
       const cEnd = meta.coding_end || meta.ref_full_len || 9417;
       const cSpan = Math.max(1, cEnd - cStart + 1);
       const isoRows = results.filter(r => (r.breakpoints || []).length > 0);
+      const useArchHorizon = isoRows.length > 20;
+
+      let trackEntries = [];
+      if (useArchHorizon) {
+        const grpMap = new Map();
+        isoRows.forEach(r => {
+          const rIdx = results.indexOf(r);
+          const key = `${r.called_lineage}|${r.structural_formula}`;
+          if (!grpMap.has(key)) {
+            grpMap.set(key, {
+              label: `${r.called_lineage} (${r.structural_formula})`,
+              count: 0,
+              repIdx: rIdx,
+              rep: r,
+            });
+          }
+          grpMap.get(key).count += 1;
+        });
+        trackEntries = Array.from(grpMap.values()).sort((a, b) => b.count - a.count).slice(0, 20);
+        document.getElementById('s2HorizonSubtitle').textContent =
+          `60-bin breakpoint density histogram paired with top ${trackEntries.length} recurring mosaic architectures across ${isoRows.length.toLocaleString()} mosaic isolates.`;
+      } else {
+        trackEntries = isoRows.map(r => ({
+          label: r.sequence_id,
+          count: 1,
+          repIdx: results.indexOf(r),
+          rep: r,
+        }));
+        document.getElementById('s2HorizonSubtitle').textContent =
+          '60-bin density histogram paired with mosaic isolate tracks. Click any junction marker to inspect the 2×2 Fisher contingency table.';
+      }
+
+      const histH = 54;
       const rowH = 22;
-      const topPad = 32;
-      const H = Math.max(120, topPad + isoRows.length * rowH + 28);
+      const topPad = 24 + histH + 14;
+      const H = Math.max(140, topPad + Math.max(1, trackEntries.length) * rowH + 22);
 
       let svgContent = '';
-      // Landmarks background
       const lms = meta.landmarks.filter(lm => !lm.parent_gene && lm.end >= cStart && lm.start <= cEnd);
       lms.forEach((lm, idx) => {
         const x = ((Math.max(lm.start, cStart) - cStart) / cSpan) * W;
         const w = Math.max(2, ((Math.min(lm.end, cEnd) - Math.max(lm.start, cStart) + 1) / cSpan) * W);
-        svgContent += `<rect x="${x.toFixed(1)}" y="6" width="${w.toFixed(1)}" height="${H - 30}" fill="${idx % 2 === 0 ? '#FAF9F6' : '#F2EFE8'}" stroke="#E2DFD7" stroke-width="0.6"/>`;
+        svgContent += `<rect x="${x.toFixed(1)}" y="6" width="${w.toFixed(1)}" height="${H - 18}" fill="${idx % 2 === 0 ? '#FAF9F6' : '#F2EFE8'}" stroke="#E2DFD7" stroke-width="0.6"/>`;
         if (w > 22) {
-          svgContent += `<text x="${(x + w / 2).toFixed(1)}" y="20" fill="#4A4945" font-size="9" font-family="Inter, sans-serif" font-weight="700" text-anchor="middle">${escapeHtml(lm.short_name)}</text>`;
+          svgContent += `<text x="${(x + w / 2).toFixed(1)}" y="18" fill="#4A4945" font-size="9" font-family="Inter, sans-serif" font-weight="700" text-anchor="middle">${escapeHtml(lm.short_name)}</text>`;
         }
       });
 
-      if (isoRows.length === 0) {
-        svgContent += `<text x="${W / 2}" y="${H / 2 + 8}" fill="#787670" font-size="13" font-family="Inter, sans-serif" text-anchor="middle">All isolates in this cohort are clonal with zero verified basal breakpoints.</text>`;
+      // 60-bin breakpoint density histogram
+      const nBins = 60;
+      const binCounts = new Array(nBins).fill(0);
+      allBps.forEach(({ b }) => {
+        const rel = Math.max(0, Math.min(0.9999, (b.bp_hxb2 - cStart) / cSpan));
+        binCounts[Math.floor(rel * nBins)] += 1;
+      });
+      const maxBin = Math.max(1, ...binCounts);
+      const binW = W / nBins;
+      const histBaseY = 24 + histH;
+      svgContent += `<line x1="0" y1="${histBaseY}" x2="${W}" y2="${histBaseY}" stroke="#9C9A94" stroke-width="0.8"/>`;
+      svgContent += `<text x="6" y="34" fill="#787670" font-size="8.5" font-family="Inter, sans-serif" font-weight="600">Breakpoint Density (${allBps.length} junctions, peak bin ${maxBin})</text>`;
+      binCounts.forEach((cnt, bi) => {
+        if (cnt > 0) {
+          const bh = (cnt / maxBin) * (histH - 14);
+          svgContent += `<rect x="${(bi * binW + 0.8).toFixed(1)}" y="${(histBaseY - bh).toFixed(1)}" width="${Math.max(1.5, binW - 1.6).toFixed(1)}" height="${bh.toFixed(1)}" fill="#E04F16" opacity="0.82" rx="1"><title>Bin ${bi + 1}: ${cnt} breakpoint(s)</title></rect>`;
+        }
+      });
+
+      if (trackEntries.length === 0) {
+        svgContent += `<text x="${W / 2}" y="${topPad + 20}" fill="#787670" font-size="12.5" font-family="Inter, sans-serif" text-anchor="middle">All isolates in this cohort are clonal with zero verified basal breakpoints.</text>`;
       } else {
-        isoRows.forEach((r, rowIdx) => {
+        trackEntries.forEach((entry, rowIdx) => {
           const y = topPad + rowIdx * rowH + 10;
-          const rIdx = results.indexOf(r);
+          const r = entry.rep;
+          const rIdx = entry.repIdx;
+          const lbl = useArchHorizon ? `[n=${entry.count}] ${entry.label}` : entry.label;
           svgContent += `<line x1="0" y1="${y}" x2="${W}" y2="${y}" stroke="#DFDCD4" stroke-width="1"/>`;
-          svgContent += `<text x="6" y="${y - 4}" fill="#4A4945" font-size="9" font-family="JetBrains Mono, monospace">${escapeHtml(r.sequence_id.slice(0, 26))}</text>`;
+          svgContent += `<text x="6" y="${y - 4}" fill="#4A4945" font-size="8.8" font-family="JetBrains Mono, monospace">${escapeHtml(lbl.slice(0, 42))}</text>`;
           r.breakpoints.forEach((b, bIdx) => {
             const bx = ((b.bp_hxb2 - cStart) / cSpan) * W;
             const xLo = ((b.ci_hxb2_low - cStart) / cSpan) * W;
@@ -2558,9 +2983,114 @@
       }
       document.getElementById('s2HorizonSvg').innerHTML = `<svg viewBox="0 0 ${W} ${H}" width="100%" style="background:#FFFFFF;border:1px solid #DFDCD4;border-radius:8px;display:block;">${svgContent}</svg>`;
 
-      document.getElementById('s2BpCount').textContent = `${allBps.length} junction${allBps.length === 1 ? '' : 's'}`;
-      document.getElementById('s2BpTableBody').innerHTML = allBps.length
-        ? allBps.map(({ r, rIdx, b, bIdx }) => `
+      renderStage2Table();
+    }
+
+    function landmarkForPos(pos, meta) {
+      const lm = (meta.landmarks || []).find(l => !l.parent_gene && pos >= l.start && pos <= l.end)
+        || (meta.landmarks || []).find(l => pos >= l.start && pos <= l.end);
+      return lm ? lm.short_name : 'Region';
+    }
+
+    function renderStage2Table() {
+      const resp = state.response;
+      if (!resp) return;
+      const meta = resp.pack_meta;
+      const results = resp.results || [];
+      const allBps = [];
+      results.forEach((r, rIdx) => {
+        (r.breakpoints || []).forEach((b, bIdx) => {
+          allBps.push({ r, rIdx, b, bIdx, locus: landmarkForPos(b.bp_hxb2, meta) });
+        });
+      });
+
+      const effectiveMode = state.s2ViewMode === 'auto'
+        ? (allBps.length > 25 ? 'hotspots' : 'all')
+        : state.s2ViewMode;
+      document.querySelectorAll('[data-s2view]').forEach(b => {
+        b.classList.toggle('active', b.dataset.s2view === effectiveMode);
+      });
+
+      const q = (state.s2Search || '').toLowerCase();
+      const thead = document.getElementById('s2BpTableHead');
+      const tbody = document.getElementById('s2BpTableBody');
+      const pager = document.getElementById('s2Pager');
+
+      if (effectiveMode === 'hotspots') {
+        const hsMap = new Map();
+        allBps.forEach(item => {
+          const bin50 = Math.round(item.b.bp_hxb2 / 50) * 50;
+          const key = `${item.locus}|${item.b.left_trunk}|${item.b.right_trunk}|${bin50}`;
+          if (!hsMap.has(key)) {
+            hsMap.set(key, {
+              key,
+              locus: item.locus,
+              left: item.b.left_trunk,
+              right: item.b.right_trunk,
+              minPos: item.b.bp_hxb2,
+              maxPos: item.b.bp_hxb2,
+              widths: [],
+              minP: item.b.p_fisher,
+              rep: item,
+              count: 0,
+            });
+          }
+          const h = hsMap.get(key);
+          h.count += 1;
+          h.minPos = Math.min(h.minPos, item.b.bp_hxb2);
+          h.maxPos = Math.max(h.maxPos, item.b.bp_hxb2);
+          h.widths.push(item.b.ci_width_nt);
+          if (item.b.p_fisher < h.minP) {
+            h.minP = item.b.p_fisher;
+            h.rep = item;
+          }
+        });
+
+        const hotspots = Array.from(hsMap.values())
+          .sort((a, b) => b.count - a.count || a.minP - b.minP)
+          .filter(h => !q || `${h.locus} ${h.left} ${h.right} ${h.minPos} ${h.rep.r.sequence_id}`.toLowerCase().includes(q));
+
+        document.getElementById('s2BpCount').textContent = `${hotspots.length} hotspot${hotspots.length === 1 ? '' : 's'} (${allBps.length} total)`;
+        thead.innerHTML = '<tr><th>Count</th><th>Locus</th><th>Transition</th><th>Position Range</th><th>Median CI Width</th><th>Best p_Fisher</th><th>Example Isolate</th></tr>';
+
+        const totalPages = Math.max(1, Math.ceil(hotspots.length / state.s2PageSize));
+        state.s2Page = Math.min(Math.max(1, state.s2Page), totalPages);
+        const hSlice = hotspots.slice((state.s2Page - 1) * state.s2PageSize, state.s2Page * state.s2PageSize);
+
+        tbody.innerHTML = hSlice.length
+          ? hSlice.map(h => {
+              h.widths.sort((a, b) => a - b);
+              const medW = h.widths[Math.floor(h.widths.length / 2)];
+              const posTxt = h.minPos === h.maxPos ? `${meta.reference_name} ${h.minPos}` : `${h.minPos}–${h.maxPos}`;
+              return `
+                <tr class="clickable" onclick="openBreakpointDrawer(${h.rep.rIdx}, ${h.rep.bIdx})">
+                  <td class="num" style="font-weight:700;">${h.count.toLocaleString()}</td>
+                  <td><span class="badge blue">${escapeHtml(h.locus)}</span></td>
+                  <td><span class="badge">${escapeHtml(h.left)} → ${escapeHtml(h.right)}</span></td>
+                  <td class="num">${escapeHtml(posTxt)}</td>
+                  <td class="num">${medW} nt</td>
+                  <td class="num" style="color:var(--green);font-weight:700;">${h.minP.toExponential(2)}</td>
+                  <td class="mono" style="font-size:11.5px;max-width:200px;word-break:break-all;">${escapeHtml(h.rep.r.sequence_id)}</td>
+                </tr>
+              `;
+            }).join('')
+          : '<tr><td colspan="7" style="text-align:center;color:var(--ink-muted);padding:18px;">No breakpoint hotspots match filter.</td></tr>';
+        pager.innerHTML = renderPager(hotspots.length, state.s2Page, state.s2PageSize, 'setS2Page', 'setS2PageSize', [25, 50, 100]);
+        return;
+      }
+
+      const filteredBps = allBps.filter(({ r, b, locus }) =>
+        !q || `${r.sequence_id} ${b.left_trunk} ${b.right_trunk} ${b.bp_hxb2} ${locus}`.toLowerCase().includes(q)
+      );
+      document.getElementById('s2BpCount').textContent = `${filteredBps.length.toLocaleString()} junction${filteredBps.length === 1 ? '' : 's'}`;
+      thead.innerHTML = '<tr><th>Isolate ID</th><th>Position</th><th>Transition</th><th>Plateau CI (Width)</th><th>2&times;2 Allelic SNP Counts</th><th>p_Fisher</th></tr>';
+
+      const totalPages = Math.max(1, Math.ceil(filteredBps.length / state.s2PageSize));
+      state.s2Page = Math.min(Math.max(1, state.s2Page), totalPages);
+      const bpSlice = filteredBps.slice((state.s2Page - 1) * state.s2PageSize, state.s2Page * state.s2PageSize);
+
+      tbody.innerHTML = bpSlice.length
+        ? bpSlice.map(({ r, rIdx, b, bIdx }) => `
             <tr class="clickable" onclick="openBreakpointDrawer(${rIdx}, ${bIdx})">
               <td class="mono" style="font-weight:600;max-width:210px;word-break:break-all;">${escapeHtml(r.sequence_id)}</td>
               <td class="num">${escapeHtml(meta.reference_name)} ${b.bp_hxb2}</td>
@@ -2571,7 +3101,12 @@
             </tr>
           `).join('')
         : '<tr><td colspan="6" style="text-align:center;color:var(--ink-muted);padding:18px;">No breakpoints verified in this cohort.</td></tr>';
+      pager.innerHTML = renderPager(filteredBps.length, state.s2Page, state.s2PageSize, 'setS2Page', 'setS2PageSize', [25, 50, 100]);
     }
+
+    window.setS2ViewMode = function(mode) { state.s2ViewMode = mode; state.s2Page = 1; renderStage2Table(); };
+    window.setS2Page = function(p) { state.s2Page = p; renderStage2Table(); };
+    window.setS2PageSize = function(sz) { state.s2PageSize = sz; state.s2Page = 1; renderStage2Table(); };
 
     // =========================================================================
     // STAGE 3 RENDERING (COMPENDIUM & STANDALONE DOSSIER)
@@ -2581,7 +3116,19 @@
       if (!resp) return '';
       const meta = resp.pack_meta;
       const results = resp.results || [];
-      const rows = results.map(r => `
+      const groups = computeStage1Groups(results.map((r, idx) => ({ r, idx })), meta);
+      const groupRows = groups.map(g => `
+        <tr>
+          <td><strong>${g.count.toLocaleString()}</strong> (${((g.count / Math.max(1, results.length)) * 100).toFixed(1)}%)</td>
+          <td>${escapeHtml(g.lin)}</td>
+          <td>${escapeHtml(g.cat)}</td>
+          <td><code>${escapeHtml(g.epiFormula)}</code></td>
+          <td>${(g.sumBps / g.count).toFixed(1)}</td>
+        </tr>
+      `).join('');
+      const cap = 50;
+      const slice = results.slice(0, cap);
+      const rows = slice.map(r => `
         <tr>
           <td>${escapeHtml(r.sequence_id)}</td>
           <td>${escapeHtml(r.called_lineage)}</td>
@@ -2591,14 +3138,25 @@
           <td>${r.n_breakpoints}</td>
         </tr>
       `).join('');
+      const capNote = results.length > cap
+        ? `<p style="font-size:12px;color:var(--amber);margin:8px 0;">Showing first ${cap} of ${results.length.toLocaleString()} isolates in inline preview; use <strong>Export CSV Table</strong> or <strong>Export Full Audit JSON</strong> for the complete dataset.</p>`
+        : '';
       return `
         <p style="margin-bottom:6px;">
           <strong>Pathogen Pack:</strong> ${escapeHtml(meta.pathogen_name)} (Reference <code>${escapeHtml(meta.reference_name)}</code>, ${meta.coding_start}..${meta.coding_end} nt) &bull;
           <strong>Pack Version:</strong> <code>${escapeHtml(meta.pack_version || 'embedded')}</code> (${escapeHtml(meta.snapshot_date || '2026-11-16')}, Engine <code>${escapeHtml(meta.engine_version || '0.2')}</code>) &bull;
-          <strong>Isolates Screened:</strong> ${results.length} (from ${resp.assembly?.raw_record_count || results.length} FASTA records) &bull;
+          <strong>Isolates Screened:</strong> ${results.length.toLocaleString()} (from ${(resp.assembly?.raw_record_count || results.length).toLocaleString()} FASTA records) &bull;
           <strong>Runtime:</strong> ${state.elapsedMs.toFixed(1)} ms
         </p>
         ${meta.curation_sources ? `<p style="font-size:12px;color:var(--ink-secondary);margin-bottom:10px;"><strong>Curation &amp; Certification Provenance:</strong> ${escapeHtml(meta.curation_sources)} &mdash; <em>${escapeHtml(meta.certification_criteria || '')}</em></p>` : ''}
+        <div style="font-size:12px;font-weight:700;text-transform:uppercase;color:var(--ink-secondary);margin:8px 0 4px;">Cohort Summary by Lineage &amp; Architecture (${groups.length} groups)</div>
+        <div class="table-scroll" style="margin-bottom:12px;">
+          <table>
+            <thead><tr><th>Count (Share)</th><th>Called Clade</th><th>Category</th><th>Coordinate Formula</th><th>Mean BPs</th></tr></thead>
+            <tbody>${groupRows}</tbody>
+          </table>
+        </div>
+        ${capNote}
         <div class="table-scroll">
           <table>
             <thead><tr><th>Isolate</th><th>Called Clade</th><th>Category</th><th>Epidemiological Formula</th><th>Basal Formula</th><th>BPs</th></tr></thead>
@@ -2639,7 +3197,11 @@
         `${c.label} ${c.category || ''} ${c.descriptive_name} ${c.status} ${c.hxb2_barcode}`.toLowerCase().includes(q)
       );
 
-      document.getElementById('atlasTableBody').innerHTML = filtered.map(c => {
+      const totalPages = Math.max(1, Math.ceil(filtered.length / state.s3AtlasPageSize));
+      state.s3AtlasPage = Math.min(Math.max(1, state.s3AtlasPage), totalPages);
+      const slice = filtered.slice((state.s3AtlasPage - 1) * state.s3AtlasPageSize, state.s3AtlasPage * state.s3AtlasPageSize);
+
+      document.getElementById('atlasTableBody').innerHTML = slice.map(c => {
         const tm = c.t_mrca != null
           ? `${c.t_mrca.toFixed(1)}`
           : escapeHtml(c.scope || 'full');
@@ -2654,7 +3216,11 @@
           </tr>
         `;
       }).join('');
+      document.getElementById('atlasPager').innerHTML = renderPager(filtered.length, state.s3AtlasPage, state.s3AtlasPageSize, 'setS3AtlasPage', 'setS3AtlasPageSize', [50, 100, 250]);
     };
+
+    window.setS3AtlasPage = function(p) { state.s3AtlasPage = p; window.renderAtlasTable(); };
+    window.setS3AtlasPageSize = function(sz) { state.s3AtlasPageSize = sz; state.s3AtlasPage = 1; window.renderAtlasTable(); };
 
     // =========================================================================
     // SLIDE-OVER FORENSIC DRAWERS
@@ -3038,14 +3604,17 @@
       const resp = state.response;
       if (!resp || !resp.results.length) return;
       const meta = resp.pack_meta;
+      const cap = 100;
+      const list = resp.results.slice(0, cap);
       const W = 960;
       const rowH = 68;
-      const H = 36 + resp.results.length * rowH;
-      let inner = `<text x="12" y="22" font-family="Inter,sans-serif" font-size="14" font-weight="700" fill="#141413">EGGMAN Coordinate Atlas — ${escapeHtml(meta.pathogen_name)} (${resp.results.length} isolates)</text>`;
-      resp.results.forEach((r, idx) => {
+      const H = 36 + list.length * rowH;
+      const suffix = resp.results.length > cap ? ` (first ${cap} of ${resp.results.length.toLocaleString()})` : ` (${resp.results.length} isolates)`;
+      let inner = `<text x="12" y="22" font-family="Inter,sans-serif" font-size="14" font-weight="700" fill="#141413">EGGMAN Coordinate Atlas — ${escapeHtml(meta.pathogen_name)}${escapeHtml(suffix)}</text>`;
+      list.forEach((r, idx) => {
         const y = 38 + idx * rowH;
         const bc = r.epidemiological_barcode || r.hxb2_barcode;
-        const subSvg = renderBarcodeSVG(bc, meta, W - 24, idx === resp.results.length - 1, true);
+        const subSvg = renderBarcodeSVG(bc, meta, W - 24, idx === list.length - 1, true);
         inner += `<text x="12" y="${y + 12}" font-family="JetBrains Mono,monospace" font-size="11" font-weight="700" fill="#141413">${escapeHtml(r.sequence_id)} — ${escapeHtml(r.called_lineage)} (${escapeHtml(r.epidemiological_formula || r.descriptive_name)})</text>`;
         inner += `<g transform="translate(12, ${y + 17})">${subSvg}</g>`;
       });
@@ -3122,7 +3691,10 @@
       document.getElementById('btnTopTour').onclick = () => startGuidedTour('flu_stitch');
       document.getElementById('btnTopGuide').onclick = () => openGuideDrawer();
 
-      document.getElementById('s1Search').oninput = () => filterAndDrawStage1Cards();
+      document.getElementById('s0SegSearch').oninput = (e) => { state.s0SegSearch = e.target.value; state.s0SegPage = 1; renderStage0Tables(); };
+      document.getElementById('s0QaSearch').oninput = (e) => { state.s0QaSearch = e.target.value; state.s0QaPage = 1; renderStage0Tables(); };
+      document.getElementById('s1Search').oninput = () => { state.s1Page = 1; state.s1GroupPage = 1; filterAndDrawStage1Cards(); };
+      document.getElementById('s2Search').oninput = (e) => { state.s2Search = e.target.value; state.s2Page = 1; renderStage2Table(); };
 
       document.addEventListener('keydown', (ev) => {
         if (ev.key === 'Escape') {
