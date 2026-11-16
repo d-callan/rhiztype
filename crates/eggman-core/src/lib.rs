@@ -16,6 +16,19 @@ const FOUNDER_PROFILES_TSV: &str = include_str!("../data/founder_profiles_9719.t
 const CERTIFIED_PROFILES_TSV: &str = include_str!("../data/certified_profiles_8628.tsv");
 const COMPENDIUM_JSON: &str = include_str!("../data/compendium_bundle.json");
 
+const IAV_MANIFEST_JSON: &str = include_str!("../../../packs/influenza_a_8seg/manifest.json");
+const IAV_PROFILES_FASTA: &str = include_str!("../../../packs/influenza_a_8seg/profiles.fasta");
+const IAV_CERTIFIED_TSV: &str = include_str!("../../../packs/influenza_a_8seg/certified_profiles.tsv");
+const IAV_COMPENDIUM_JSON: &str = include_str!("../../../packs/influenza_a_8seg/compendium.json");
+
+const SC2_MANIFEST_JSON: &str = include_str!("../../../packs/sars_cov2_wuhan/manifest.json");
+const SC2_PROFILES_FASTA: &str = include_str!("../../../packs/sars_cov2_wuhan/profiles.fasta");
+const SC2_CERTIFIED_TSV: &str = include_str!("../../../packs/sars_cov2_wuhan/certified_profiles.tsv");
+const SC2_COMPENDIUM_JSON: &str = include_str!("../../../packs/sars_cov2_wuhan/compendium.json");
+
+const SARBECO_MANIFEST_JSON: &str = include_str!("../../../packs/sarbecovirus_wuhan/manifest.json");
+const SARBECO_PROFILES_FASTA: &str = include_str!("../../../packs/sarbecovirus_wuhan/profiles.fasta");
+
 pub const HXB2_FULL_LEN: usize = 9719;
 pub const CODING_START_HXB2: usize = 790;
 pub const CODING_END_HXB2: usize = 9417;
@@ -490,6 +503,68 @@ impl PathogenProfilePack {
         }
     }
 
+    /// Embedded 8-segment Influenza A (2.3.4.4b H5N1 / LPAI) pack.
+    pub fn influenza_a_8seg_default() -> Result<Self, String> {
+        let spec: PathogenSpec = serde_json::from_str(IAV_MANIFEST_JSON)
+            .map_err(|e| format!("invalid embedded IAV manifest: {}", e))?;
+        Ok(Self {
+            spec,
+            profiles_tsv: None,
+            profiles_fasta: Some(IAV_PROFILES_FASTA.to_string()),
+            founder_profiles_tsv: None,
+            founder_profiles_fasta: None,
+            certified_profiles_tsv: Some(IAV_CERTIFIED_TSV.to_string()),
+            compendium_json: Some(IAV_COMPENDIUM_JSON.to_string()),
+        })
+    }
+
+    /// Embedded clinical SARS-CoV-2 (Wuhan-Hu-1) pack.
+    pub fn sars_cov2_wuhan_default() -> Result<Self, String> {
+        let spec: PathogenSpec = serde_json::from_str(SC2_MANIFEST_JSON)
+            .map_err(|e| format!("invalid embedded SARS-CoV-2 manifest: {}", e))?;
+        Ok(Self {
+            spec,
+            profiles_tsv: None,
+            profiles_fasta: Some(SC2_PROFILES_FASTA.to_string()),
+            founder_profiles_tsv: None,
+            founder_profiles_fasta: None,
+            certified_profiles_tsv: Some(SC2_CERTIFIED_TSV.to_string()),
+            compendium_json: Some(SC2_COMPENDIUM_JSON.to_string()),
+        })
+    }
+
+    /// Embedded wildlife Sarbecovirus (Wuhan-Hu-1 coordinates) pack.
+    pub fn sarbecovirus_wuhan_default() -> Result<Self, String> {
+        let spec: PathogenSpec = serde_json::from_str(SARBECO_MANIFEST_JSON)
+            .map_err(|e| format!("invalid embedded Sarbecovirus manifest: {}", e))?;
+        Ok(Self {
+            spec,
+            profiles_tsv: None,
+            profiles_fasta: Some(SARBECO_PROFILES_FASTA.to_string()),
+            founder_profiles_tsv: None,
+            founder_profiles_fasta: None,
+            certified_profiles_tsv: None,
+            compendium_json: None,
+        })
+    }
+
+    /// Resolve a built-in pathogen pack by short identifier (`hiv1`, `iav`, `sc2`, `sarbeco`).
+    pub fn from_builtin_id(pack_id: &str) -> Result<Self, String> {
+        match pack_id.trim().to_ascii_lowercase().as_str() {
+            "hiv1" | "hiv-1" | "hiv" | "default" => Ok(Self::hiv1_group_m_default()),
+            "iav" | "flu" | "h5n1" | "influenza" | "influenza_a_8seg" => {
+                Self::influenza_a_8seg_default()
+            }
+            "sc2" | "sars2" | "sars-cov-2" | "sars_cov2" | "sars_cov2_wuhan" => {
+                Self::sars_cov2_wuhan_default()
+            }
+            "sarbeco" | "sarbecovirus" | "sarbecovirus_wuhan" => {
+                Self::sarbecovirus_wuhan_default()
+            }
+            other => Err(format!("unknown built-in pathogen pack '{}'", other)),
+        }
+    }
+
     /// Load a pathogen profile pack from either a JSON pack file or a directory containing `manifest.json` / `pack.json`.
     pub fn from_path(path: &Path) -> Result<Self, String> {
         let (manifest_path, base_dir): (std::path::PathBuf, Option<&Path>) = if path.is_dir() {
@@ -710,6 +785,41 @@ pub struct SequenceResult {
     pub matches: Vec<LineageMatch>,
 }
 
+/// Slot coverage metadata for a single RNA segment or genomic partition of a segmented isolate.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SegmentSlotInfo {
+    pub seg_name: String,
+    pub seg_index: usize,
+    pub ref_start: usize,
+    pub ref_end: usize,
+    pub present: bool,
+    pub source_header: Option<String>,
+    pub raw_len_nt: usize,
+    pub mapped_nt: usize,
+}
+
+/// Summary of how an isolate's FASTA record(s) map across segmented genome slots.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SegmentedIsolateSummary {
+    pub isolate_id: String,
+    pub n_segments_present: usize,
+    pub total_segments: usize,
+    pub is_assembled_from_parts: bool,
+    pub total_raw_nt: usize,
+    pub total_mapped_nt: usize,
+    pub segments: Vec<SegmentSlotInfo>,
+}
+
+/// Ingestion summary returned alongside classification results when handling segmented pathogens.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SegmentedAssemblyResult {
+    pub mode: String,
+    pub raw_record_count: usize,
+    pub isolate_count: usize,
+    pub was_multi_record_assembled: bool,
+    pub isolates: Vec<SegmentedIsolateSummary>,
+}
+
 struct CertifiedLineage {
     label: String,
     category: String,
@@ -874,6 +984,12 @@ impl EggmanEngine {
         let mut pack = PathogenProfilePack::hiv1_group_m_default();
         pack.certified_profiles_tsv = Some(certified_profiles_tsv.to_string());
         Self::from_pathogen_pack(pack).expect("valid HIV-1 Group M pack with custom certified profiles")
+    }
+
+    /// Construct a `EggmanEngine` from an embedded built-in pack id (`hiv1`, `iav`, `sc2`, `sarbeco`).
+    pub fn from_builtin_id(pack_id: &str) -> Result<Self, String> {
+        let pack = PathogenProfilePack::from_builtin_id(pack_id)?;
+        Self::from_pathogen_pack(pack)
     }
 
     /// Construct a `EggmanEngine` from a pack directory or JSON manifest path.
@@ -1336,6 +1452,555 @@ impl EggmanEngine {
             records.push((h, cur_seq));
         }
         records
+    }
+
+    /// Return `(matched_15mers, total_valid_15mers, best_profile_exact_15mers)` on the stronger strand.
+    pub fn kmer_hit_stats(&self, raw_seq: &str) -> (usize, usize, usize) {
+        let q: Vec<i8> = raw_seq
+            .bytes()
+            .filter(|&b| b != b'-' && b != b'.' && b != b'|')
+            .map(base_to_int)
+            .collect();
+        if q.len() < 15 {
+            return (0, 0, 0);
+        }
+        let n_prof = self.full_profiles_ref.len();
+        let eval_strand = |seq: &[i8]| -> (usize, usize, usize) {
+            let mut matched = 0usize;
+            let mut total_valid = 0usize;
+            let mut prof_hits = vec![0usize; n_prof];
+            for pos in 0..=(seq.len() - 15) {
+                if let Some(code) = encode_kmer_15(&seq[pos..(pos + 15)]) {
+                    total_valid += 1;
+                    if let Some(locs) = self.kmer_index.get(&code) {
+                        matched += 1;
+                        let mut seen_mask_p: u64 = 0;
+                        for &(p_idx, _) in locs {
+                            let pi = p_idx as usize;
+                            if pi < n_prof {
+                                if pi < 64 {
+                                    let bit = 1u64 << pi;
+                                    if seen_mask_p & bit == 0 {
+                                        seen_mask_p |= bit;
+                                        prof_hits[pi] += 1;
+                                    }
+                                } else {
+                                    prof_hits[pi] += 1;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            let max_prof = prof_hits.into_iter().max().unwrap_or(0);
+            (matched, total_valid, max_prof)
+        };
+
+        let fwd = eval_strand(&q);
+        // Fast check on reverse complement if forward match rate < 15%
+        if fwd.1 > 0 && (fwd.0 as f64) / (fwd.1 as f64) >= 0.15 {
+            return fwd;
+        }
+        let rc: Vec<i8> = q
+            .iter()
+            .rev()
+            .map(|&b| if (0..=3).contains(&b) { 3 - b } else { -1 })
+            .collect();
+        let rev = eval_strand(&rc);
+        if rev.0 > fwd.0 { rev } else { fwd }
+    }
+
+    /// Count 15-mer hits per segmented landmark index (`0..landmarks.len()`) on the stronger strand.
+    fn identify_segmented_landmark(&self, header: &str, clean_seq: &str) -> Option<usize> {
+        let n_lm = self.spec.landmarks.len();
+        if !self.spec.is_segmented || n_lm == 0 {
+            return None;
+        }
+        let q: Vec<i8> = clean_seq.bytes().map(base_to_int).collect();
+        if q.len() >= 15 {
+            let count_strand = |seq: &[i8]| -> Vec<usize> {
+                let mut counts = vec![0usize; n_lm];
+                for pos in 0..=(seq.len() - 15) {
+                    if let Some(code) = encode_kmer_15(&seq[pos..(pos + 15)]) {
+                        if let Some(locs) = self.kmer_index.get(&code) {
+                            let mut seen_seg: u32 = 0;
+                            for &(_, r_pos) in locs {
+                                let sid = self.segment_id_at_ref((r_pos as usize) + 1);
+                                if sid > 0 {
+                                    let idx = (sid - 1) as usize;
+                                    if idx < n_lm && (seen_seg & (1u32 << idx.min(31))) == 0 {
+                                        seen_seg |= 1u32 << idx.min(31);
+                                        counts[idx] += 1;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                counts
+            };
+            let fwd_counts = count_strand(&q);
+            let fwd_total: usize = fwd_counts.iter().sum();
+            let counts = if fwd_total >= 4 {
+                fwd_counts
+            } else {
+                let rc: Vec<i8> = q
+                    .iter()
+                    .rev()
+                    .map(|&b| if (0..=3).contains(&b) { 3 - b } else { -1 })
+                    .collect();
+                let rev_counts = count_strand(&rc);
+                let rev_total: usize = rev_counts.iter().sum();
+                if rev_total > fwd_total { rev_counts } else { fwd_counts }
+            };
+            if let Some((best_idx, &best_hits)) = counts
+                .iter()
+                .enumerate()
+                .max_by_key(|&(_, &c)| c)
+            {
+                if best_hits >= 2 {
+                    return Some(best_idx);
+                }
+            }
+        }
+        // Fallback: unambiguous header segment keywords
+        infer_flu_segment_from_header(header, &self.spec.landmarks)
+    }
+
+    /// Screen FASTA records with automatic multi-record assembly for segmented genomes (`Influenza A`).
+    /// `seg_mode`: `"auto"`, `"single_isolate"`, or `"per_record"`.
+    pub fn classify_fasta_with_segmentation(
+        &self,
+        fasta_text: &str,
+        seg_mode: &str,
+        cfg: &ScreeningConfig,
+    ) -> (SegmentedAssemblyResult, Vec<SequenceResult>, String) {
+        let raw_records: Vec<(String, String)> = Self::parse_fasta(fasta_text)
+            .into_iter()
+            .filter_map(|(hdr, seq)| {
+                let clean: String = seq.chars().filter(|&c| c != '|').collect();
+                if clean.is_empty() {
+                    None
+                } else {
+                    Some((hdr, clean))
+                }
+            })
+            .collect();
+
+        let raw_record_count = raw_records.len();
+        let n_lm = self.spec.landmarks.len();
+        let effective_mode = if !self.spec.is_segmented {
+            "per_record"
+        } else {
+            match seg_mode.trim().to_ascii_lowercase().as_str() {
+                "per_record" | "single_isolate" => seg_mode.trim(),
+                _ => "auto",
+            }
+        };
+
+        // Determine if there are unconcatenated sub-genome segment records to assemble
+        let has_short_segments = self.spec.is_segmented
+            && effective_mode != "per_record"
+            && raw_records.iter().any(|(_, s)| s.len() < 8_000);
+
+        if !has_short_segments {
+            let mut results = Vec::with_capacity(raw_records.len());
+            let mut isolates = Vec::with_capacity(raw_records.len());
+            let mut out_fasta = String::new();
+            for (hdr, seq) in &raw_records {
+                let res = self.classify_sequence(hdr, seq, cfg);
+                let cov_vec = self.compute_landmark_coverage_vec(seq);
+                let mut slots = Vec::with_capacity(n_lm);
+                let mut present_cnt = 0usize;
+                for (si, lm) in self.spec.landmarks.iter().enumerate() {
+                    let mapped_nt = cov_vec.get(si).copied().unwrap_or(0);
+                    let present = mapped_nt >= 50;
+                    if present {
+                        present_cnt += 1;
+                    }
+                    slots.push(SegmentSlotInfo {
+                        seg_name: lm.short_name.clone(),
+                        seg_index: si + 1,
+                        ref_start: lm.start,
+                        ref_end: lm.end,
+                        present,
+                        source_header: if present { Some(hdr.clone()) } else { None },
+                        raw_len_nt: if present { mapped_nt } else { 0 },
+                        mapped_nt,
+                    });
+                }
+                isolates.push(SegmentedIsolateSummary {
+                    isolate_id: hdr.clone(),
+                    n_segments_present: present_cnt,
+                    total_segments: n_lm,
+                    is_assembled_from_parts: false,
+                    total_raw_nt: res.raw_length_nt,
+                    total_mapped_nt: res.mapped_coding_nt,
+                    segments: slots,
+                });
+                results.push(res);
+                out_fasta.push('>');
+                out_fasta.push_str(hdr);
+                out_fasta.push('\n');
+                out_fasta.push_str(seq);
+                out_fasta.push('\n');
+            }
+            let assembly = SegmentedAssemblyResult {
+                mode: effective_mode.to_string(),
+                raw_record_count,
+                isolate_count: isolates.len(),
+                was_multi_record_assembled: false,
+                isolates,
+            };
+            return (assembly, results, out_fasta);
+        }
+
+        // Partition long pre-concatenated records from short segment records
+        struct PartRec {
+            hdr: String,
+            seq: String,
+            seg_idx: Option<usize>,
+            strain_key: Option<String>,
+        }
+
+        let mut full_items: Vec<(String, String)> = Vec::new();
+        let mut short_parts: Vec<PartRec> = Vec::new();
+        for (hdr, seq) in raw_records {
+            if seq.len() >= 8_000 {
+                full_items.push((hdr, seq));
+            } else {
+                let seg_idx = self.identify_segmented_landmark(&hdr, &seq);
+                let strain_key = extract_flu_isolate_key(&hdr);
+                short_parts.push(PartRec {
+                    hdr,
+                    seq,
+                    seg_idx,
+                    strain_key,
+                });
+            }
+        }
+
+        // Group short segment records into candidate isolates
+        struct AssembledGroup {
+            isolate_id: String,
+            parts: Vec<(usize, String, String)>, // (seg_idx, src_hdr, seq)
+        }
+        let mut groups: Vec<AssembledGroup> = Vec::new();
+        let mut passthrough_short: Vec<(String, String)> = Vec::new();
+
+        if effective_mode == "single_isolate" {
+            let first_id = short_parts
+                .iter()
+                .find_map(|p| p.strain_key.clone())
+                .or_else(|| {
+                    short_parts.first().and_then(|p| {
+                        p.hdr
+                            .split_whitespace()
+                            .next()
+                            .map(|tok| format!("{}_assembled", tok))
+                    })
+                })
+                .unwrap_or_else(|| "IAV_Assembled_Isolate".to_string());
+            let mut grp = AssembledGroup {
+                isolate_id: first_id,
+                parts: Vec::new(),
+            };
+            for p in short_parts {
+                if let Some(si) = p.seg_idx {
+                    if let Some(existing) = grp.parts.iter_mut().find(|x| x.0 == si) {
+                        if p.seq.len() > existing.2.len() {
+                            *existing = (si, p.hdr, p.seq);
+                        }
+                    } else {
+                        grp.parts.push((si, p.hdr, p.seq));
+                    }
+                } else {
+                    passthrough_short.push((p.hdr, p.seq));
+                }
+            }
+            if !grp.parts.is_empty() {
+                groups.push(grp);
+            }
+        } else {
+            // "auto" mode: group by normalized strain key first
+            let mut keyed_idx: HashMap<String, usize> = HashMap::new();
+            let mut unkeyed: Vec<PartRec> = Vec::new();
+
+            for p in short_parts {
+                match (&p.strain_key, p.seg_idx) {
+                    (Some(k), Some(si)) => {
+                        if let Some(&g_idx) = keyed_idx.get(k) {
+                            if let Some(existing) = groups[g_idx].parts.iter_mut().find(|x| x.0 == si) {
+                                // Collision on same strain key + same segment -> keep distinct suffix group or longer
+                                if p.seq.len() > existing.2.len() {
+                                    *existing = (si, p.hdr, p.seq);
+                                }
+                            } else {
+                                groups[g_idx].parts.push((si, p.hdr, p.seq));
+                            }
+                        } else {
+                            let g_idx = groups.len();
+                            keyed_idx.insert(k.clone(), g_idx);
+                            groups.push(AssembledGroup {
+                                isolate_id: k.clone(),
+                                parts: vec![(si, p.hdr, p.seq)],
+                            });
+                        }
+                    }
+                    _ => unkeyed.push(p),
+                }
+            }
+
+            // If there are <= n_lm unkeyed records (e.g., 8 separate bare GenBank accessions)
+            // whose identified segments are all mutually distinct, auto-merge them into one isolate.
+            let assigned_unkeyed: Vec<usize> =
+                unkeyed.iter().filter_map(|p| p.seg_idx).collect();
+            let mut seen_set: HashSet<usize> = HashSet::new();
+            let all_distinct = !assigned_unkeyed.is_empty()
+                && assigned_unkeyed.len() == unkeyed.len()
+                && unkeyed.len() <= n_lm
+                && assigned_unkeyed.iter().all(|&s| seen_set.insert(s));
+
+            if all_distinct && unkeyed.len() >= 2 {
+                let first_tok = unkeyed[0]
+                    .hdr
+                    .split_whitespace()
+                    .next()
+                    .unwrap_or("IAV_Isolate");
+                let mut grp = AssembledGroup {
+                    isolate_id: format!("{}_assembled_{}seg", first_tok, unkeyed.len()),
+                    parts: Vec::new(),
+                };
+                for p in unkeyed {
+                    if let Some(si) = p.seg_idx {
+                        grp.parts.push((si, p.hdr, p.seq));
+                    }
+                }
+                groups.push(grp);
+            } else {
+                for p in unkeyed {
+                    passthrough_short.push((p.hdr, p.seq));
+                }
+            }
+        }
+
+        let mut results = Vec::new();
+        let mut isolates = Vec::new();
+        let mut out_fasta = String::new();
+        let mut was_multi_record_assembled = false;
+
+        // 1. Pre-concatenated full records
+        for (hdr, seq) in full_items {
+            let res = self.classify_sequence(&hdr, &seq, cfg);
+            let cov_vec = self.compute_landmark_coverage_vec(&seq);
+            let mut slots = Vec::with_capacity(n_lm);
+            let mut present_cnt = 0usize;
+            for (si, lm) in self.spec.landmarks.iter().enumerate() {
+                let mapped_nt = cov_vec.get(si).copied().unwrap_or(0);
+                let present = mapped_nt >= 50;
+                if present {
+                    present_cnt += 1;
+                }
+                slots.push(SegmentSlotInfo {
+                    seg_name: lm.short_name.clone(),
+                    seg_index: si + 1,
+                    ref_start: lm.start,
+                    ref_end: lm.end,
+                    present,
+                    source_header: if present { Some(hdr.clone()) } else { None },
+                    raw_len_nt: if present { mapped_nt } else { 0 },
+                    mapped_nt,
+                });
+            }
+            isolates.push(SegmentedIsolateSummary {
+                isolate_id: hdr.clone(),
+                n_segments_present: present_cnt,
+                total_segments: n_lm,
+                is_assembled_from_parts: false,
+                total_raw_nt: res.raw_length_nt,
+                total_mapped_nt: res.mapped_coding_nt,
+                segments: slots,
+            });
+            results.push(res);
+            out_fasta.push('>');
+            out_fasta.push_str(&hdr);
+            out_fasta.push('\n');
+            out_fasta.push_str(&seq);
+            out_fasta.push('\n');
+        }
+
+        // 2. Assembled segmented groups
+        for grp in groups {
+            if grp.parts.len() > 1 {
+                was_multi_record_assembled = true;
+            }
+            let mut scaffold = vec![-1i8; self.spec.ref_full_len];
+            let mut total_raw_nt = 0usize;
+            let mut slot_meta: Vec<Option<(String, usize, usize)>> = vec![None; n_lm];
+
+            for (si, src_hdr, seg_seq) in &grp.parts {
+                let lm = &self.spec.landmarks[*si];
+                let raw_nt = seg_seq.bytes().filter(|&b| b != b'-' && b != b'.').count();
+                total_raw_nt += raw_nt;
+                let (cod, _, _) = self.project_to_hxb2_coding(seg_seq);
+                let lo = lm.start.saturating_sub(self.spec.coding_start);
+                let hi = lm
+                    .end
+                    .min(self.spec.coding_end)
+                    .saturating_sub(self.spec.coding_start);
+                let mut mapped_here = 0usize;
+                for c_idx in lo..=hi {
+                    if let Some(&b) = cod.get(c_idx) {
+                        if b >= 0 {
+                            let ref_idx = (self.spec.coding_start - 1) + c_idx;
+                            if ref_idx < scaffold.len() {
+                                scaffold[ref_idx] = b;
+                                mapped_here += 1;
+                            }
+                        }
+                    }
+                }
+                slot_meta[*si] = Some((src_hdr.clone(), raw_nt, mapped_here));
+            }
+
+            let stitched_seq: String = scaffold
+                .iter()
+                .map(|&b| match b {
+                    0 => 'A',
+                    1 => 'C',
+                    2 => 'G',
+                    3 => 'T',
+                    _ => 'N',
+                })
+                .collect();
+
+            let mut res = self.classify_sequence(&grp.isolate_id, &stitched_seq, cfg);
+            res.raw_length_nt = total_raw_nt;
+            if grp.parts.len() > 1 {
+                res.alignment_mode = format!(
+                    "Coordinate-stitched ({}/{} RNA segments to {})",
+                    grp.parts.len(),
+                    n_lm,
+                    self.spec.reference_name
+                );
+            }
+
+            let mut slots = Vec::with_capacity(n_lm);
+            let mut present_cnt = 0usize;
+            for (si, lm) in self.spec.landmarks.iter().enumerate() {
+                if let Some((src_h, r_len, m_len)) = &slot_meta[si] {
+                    present_cnt += 1;
+                    slots.push(SegmentSlotInfo {
+                        seg_name: lm.short_name.clone(),
+                        seg_index: si + 1,
+                        ref_start: lm.start,
+                        ref_end: lm.end,
+                        present: true,
+                        source_header: Some(src_h.clone()),
+                        raw_len_nt: *r_len,
+                        mapped_nt: *m_len,
+                    });
+                } else {
+                    slots.push(SegmentSlotInfo {
+                        seg_name: lm.short_name.clone(),
+                        seg_index: si + 1,
+                        ref_start: lm.start,
+                        ref_end: lm.end,
+                        present: false,
+                        source_header: None,
+                        raw_len_nt: 0,
+                        mapped_nt: 0,
+                    });
+                }
+            }
+
+            isolates.push(SegmentedIsolateSummary {
+                isolate_id: grp.isolate_id.clone(),
+                n_segments_present: present_cnt,
+                total_segments: n_lm,
+                is_assembled_from_parts: grp.parts.len() > 1,
+                total_raw_nt,
+                total_mapped_nt: res.mapped_coding_nt,
+                segments: slots,
+            });
+            results.push(res);
+            out_fasta.push('>');
+            out_fasta.push_str(&grp.isolate_id);
+            out_fasta.push('\n');
+            out_fasta.push_str(&stitched_seq);
+            out_fasta.push('\n');
+        }
+
+        // 3. Any unmerged/single passthrough short records
+        for (hdr, seq) in passthrough_short {
+            let res = self.classify_sequence(&hdr, &seq, cfg);
+            let cov_vec = self.compute_landmark_coverage_vec(&seq);
+            let mut slots = Vec::with_capacity(n_lm);
+            let mut present_cnt = 0usize;
+            for (si, lm) in self.spec.landmarks.iter().enumerate() {
+                let mapped_nt = cov_vec.get(si).copied().unwrap_or(0);
+                let present = mapped_nt >= 50;
+                if present {
+                    present_cnt += 1;
+                }
+                slots.push(SegmentSlotInfo {
+                    seg_name: lm.short_name.clone(),
+                    seg_index: si + 1,
+                    ref_start: lm.start,
+                    ref_end: lm.end,
+                    present,
+                    source_header: if present { Some(hdr.clone()) } else { None },
+                    raw_len_nt: if present { mapped_nt } else { 0 },
+                    mapped_nt,
+                });
+            }
+            isolates.push(SegmentedIsolateSummary {
+                isolate_id: hdr.clone(),
+                n_segments_present: present_cnt,
+                total_segments: n_lm,
+                is_assembled_from_parts: false,
+                total_raw_nt: res.raw_length_nt,
+                total_mapped_nt: res.mapped_coding_nt,
+                segments: slots,
+            });
+            results.push(res);
+            out_fasta.push('>');
+            out_fasta.push_str(&hdr);
+            out_fasta.push('\n');
+            out_fasta.push_str(&seq);
+            out_fasta.push('\n');
+        }
+
+        let assembly = SegmentedAssemblyResult {
+            mode: effective_mode.to_string(),
+            raw_record_count,
+            isolate_count: isolates.len(),
+            was_multi_record_assembled,
+            isolates,
+        };
+        (assembly, results, out_fasta)
+    }
+
+    /// Compute valid mapped nucleotides within each landmark span for a sequence.
+    fn compute_landmark_coverage_vec(&self, raw_seq: &str) -> Vec<usize> {
+        let (cod, _, _) = self.project_to_hxb2_coding(raw_seq);
+        self.spec
+            .landmarks
+            .iter()
+            .map(|lm| {
+                if lm.end < self.spec.coding_start || lm.start > self.spec.coding_end {
+                    return 0;
+                }
+                let lo = lm.start.saturating_sub(self.spec.coding_start);
+                let hi = lm
+                    .end
+                    .min(self.spec.coding_end)
+                    .saturating_sub(self.spec.coding_start);
+                (lo..=hi)
+                    .filter(|&ci| cod.get(ci).copied().unwrap_or(-1) >= 0)
+                    .count()
+            })
+            .collect()
     }
 
     /// Project any aligned or unaligned sequence onto the reference coding coordinate grid (`coding_start..=coding_end`).
@@ -4301,6 +4966,236 @@ mod pathogen_pack_tests {
         assert_eq!(res_pruned.called_lineage, "BA.2");
         assert_eq!(res_pruned.structural_formula, "BA.2(Clonal)");
     }
+
+    #[test]
+    fn embedded_builtin_packs_load_and_stitch_flu_segments() {
+        let hiv = EggmanEngine::from_builtin_id("hiv1").expect("embedded hiv1");
+        assert_eq!(hiv.basal_trunk_count(), 14);
+
+        let iav = EggmanEngine::from_builtin_id("iav").expect("embedded iav");
+        assert!(iav.spec().is_segmented);
+        assert_eq!(iav.spec().landmarks.len(), 8);
+
+        let sc2 = EggmanEngine::from_builtin_id("sc2").expect("embedded sc2");
+        assert_eq!(sc2.reference_name(), "Wuhan-Hu-1");
+
+        let sarbeco = EggmanEngine::from_builtin_id("sarbeco").expect("embedded sarbeco");
+        assert_eq!(sarbeco.basal_trunk_count(), 5);
+
+        // Construct B3.13 (EA1 on PA, HA, NA, MP; NAm_B313 on PB2, PB1, NP, NS)
+        // and split into 8 out-of-order FASTA records with 5'/3' UTR overhangs
+        let profs = parse_aligned_fasta_profiles(IAV_PROFILES_FASTA, iav.spec().ref_full_len)
+            .expect("iav profiles");
+        let ea1 = &profs["EA1"];
+        let nam = &profs["NAm_B313"];
+        let mut b313_genome = nam.clone();
+        for &lm_idx in &[2usize, 3, 5, 6] {
+            let lm = &iav.spec().landmarks[lm_idx];
+            for p in (lm.start - 1)..lm.end {
+                b313_genome[p] = ea1[p];
+            }
+        }
+        let to_dna = |slice: &[i8]| -> String {
+            slice
+                .iter()
+                .map(|&b| match b {
+                    0 => 'A',
+                    1 => 'C',
+                    2 => 'G',
+                    3 => 'T',
+                    _ => 'N',
+                })
+                .collect()
+        };
+        let order = [7usize, 3, 0, 5, 2, 6, 1, 4];
+        let mut multi_fasta = String::new();
+        for &idx in &order {
+            let lm = &iav.spec().landmarks[idx];
+            let seg_seq = to_dna(&b313_genome[(lm.start - 1)..lm.end]);
+            // Add realistic 5' UTR & 3' poly-U tail on HA & NA
+            let padded = if idx == 3 || idx == 5 {
+                format!("AGCAAAAGCAGGGG{}{}", seg_seq, "AACCCCTTTTT")
+            } else {
+                seg_seq
+            };
+            multi_fasta.push_str(&format!(
+                ">PP7551{:02}.1 Influenza A virus (A/dairy cow/Texas/24-008749-001/2024(H5N1)) segment {} ({}) complete cds\n{}\n",
+                idx + 20,
+                idx + 1,
+                lm.short_name,
+                padded
+            ));
+        }
+
+        let (asm, res, _stitched) =
+            iav.classify_fasta_with_segmentation(&multi_fasta, "auto", &ScreeningConfig::default());
+        assert!(asm.was_multi_record_assembled);
+        assert_eq!(asm.raw_record_count, 8);
+        assert_eq!(asm.isolate_count, 1);
+        assert_eq!(res.len(), 1);
+        assert_eq!(res[0].called_lineage, "B3.13");
+        assert_eq!(res[0].structural_formula, "NAm_B313[EA1:PA+HA+NA+MP]");
+
+        // Test bare accession auto-merge (<= 8 distinct segments) vs duplicate HA collision guard
+        let mut bare_8 = String::new();
+        for idx in 0..8 {
+            let lm = &iav.spec().landmarks[idx];
+            bare_8.push_str(&format!(
+                ">ACC_00{}\n{}\n",
+                idx + 1,
+                to_dna(&b313_genome[(lm.start - 1)..lm.end])
+            ));
+        }
+        let (asm_bare, res_bare, _) =
+            iav.classify_fasta_with_segmentation(&bare_8, "auto", &ScreeningConfig::default());
+        assert_eq!(asm_bare.isolate_count, 1);
+        assert_eq!(res_bare[0].called_lineage, "B3.13");
+
+        let ha_lm = &iav.spec().landmarks[3];
+        let dup_ha = format!(
+            ">ISO_ONE\n{}\n>ISO_TWO\n{}\n",
+            to_dna(&b313_genome[(ha_lm.start - 1)..ha_lm.end]),
+            to_dna(&ea1[(ha_lm.start - 1)..ha_lm.end])
+        );
+        let (asm_ha, _, _) =
+            iav.classify_fasta_with_segmentation(&dup_ha, "auto", &ScreeningConfig::default());
+        assert_eq!(asm_ha.isolate_count, 2);
+        assert!(!asm_ha.was_multi_record_assembled);
+    }
+}
+
+/// Extract canonical Influenza isolate strain key or prefix before segment delimiter.
+fn extract_flu_isolate_key(header: &str) -> Option<String> {
+    let h = header.trim();
+    if h.is_empty() {
+        return None;
+    }
+    // 1. Check for canonical WHO Influenza A/B strain string: A/host/location/id/year(HxNy)
+    for (idx, _) in h.match_indices('/') {
+        if idx >= 1 {
+            let prefix_char = h.as_bytes()[idx - 1];
+            if prefix_char == b'A' || prefix_char == b'B' {
+                let start = idx - 1;
+                let prev_ok = start == 0
+                    || matches!(
+                        h.as_bytes()[start - 1],
+                        b'(' | b'|' | b' ' | b'\t' | b'_' | b',' | b'['
+                    );
+                if prev_ok {
+                    let sub = &h[start..];
+                    // Require at least 3 slashes (A/loc/id/year or A/host/loc/id/year)
+                    let enclosed_in_paren = start > 0 && h.as_bytes()[start - 1] == b'(';
+                    let mut end_off = sub.len();
+                    if enclosed_in_paren {
+                        let mut depth = 1i32;
+                        for (j, ch) in sub.char_indices() {
+                            match ch {
+                                '(' => depth += 1,
+                                ')' => {
+                                    depth -= 1;
+                                    if depth == 0 {
+                                        end_off = j;
+                                        break;
+                                    }
+                                }
+                                _ => {}
+                            }
+                        }
+                    } else {
+                        for (j, ch) in sub.char_indices() {
+                            if ch == '|' || ch == '[' || ch == ']' {
+                                end_off = j;
+                                break;
+                            }
+                        }
+                    }
+                    let mut cand = sub[..end_off].trim();
+                    if let Some(pos) = cand.to_ascii_lowercase().find(" segment ") {
+                        cand = cand[..pos].trim();
+                    }
+                    if cand.matches('/').count() >= 3 && cand.len() >= 8 {
+                        return Some(cand.to_string());
+                    }
+                }
+            }
+        }
+    }
+
+    // 2. Check pipe/underscore/slash delimited first token for trailing segment suffix (e.g., Sample1|PB2)
+    let first_tok = h.split_whitespace().next().unwrap_or(h);
+    let seg_tokens = [
+        "PB2", "PB1", "PA", "HA", "NP", "NA", "MP", "M1", "M2", "NS", "NS1", "NEP", "SEG1",
+        "SEG2", "SEG3", "SEG4", "SEG5", "SEG6", "SEG7", "SEG8",
+    ];
+    for delim in ['|', '_', '/', '-'] {
+        if let Some(pos) = first_tok.rfind(delim) {
+            let suffix = first_tok[pos + 1..].to_ascii_uppercase();
+            if seg_tokens.contains(&suffix.as_str()) && pos >= 2 {
+                return Some(first_tok[..pos].to_string());
+            }
+        }
+    }
+    None
+}
+
+/// Infer Flu A segment landmark index (0..7) strictly from delimited header tokens or `segment N`.
+fn infer_flu_segment_from_header(header: &str, landmarks: &[GeneLandmark]) -> Option<usize> {
+    let lower = header.to_ascii_lowercase();
+    let find_lm = |name: &str| landmarks.iter().position(|lm| lm.short_name.eq_ignore_ascii_case(name));
+    for (seg_num, name) in [
+        ("segment 1", "PB2"),
+        ("segment 2", "PB1"),
+        ("segment 3", "PA"),
+        ("segment 4", "HA"),
+        ("segment 5", "NP"),
+        ("segment 6", "NA"),
+        ("segment 7", "MP"),
+        ("segment 8", "NS"),
+        ("seg 1", "PB2"),
+        ("seg 2", "PB1"),
+        ("seg 3", "PA"),
+        ("seg 4", "HA"),
+        ("seg 5", "NP"),
+        ("seg 6", "NA"),
+        ("seg 7", "MP"),
+        ("seg 8", "NS"),
+        ("seg1", "PB2"),
+        ("seg2", "PB1"),
+        ("seg3", "PA"),
+        ("seg4", "HA"),
+        ("seg5", "NP"),
+        ("seg6", "NA"),
+        ("seg7", "MP"),
+        ("seg8", "NS"),
+    ] {
+        if lower.contains(seg_num) {
+            return find_lm(name);
+        }
+    }
+    let tokens: Vec<String> = lower
+        .split(|c: char| !c.is_ascii_alphanumeric())
+        .filter(|t| !t.is_empty())
+        .map(|s| s.to_string())
+        .collect();
+    for tok in tokens.iter().rev() {
+        let mapped = match tok.as_str() {
+            "pb2" => Some("PB2"),
+            "pb1" => Some("PB1"),
+            "pa" => Some("PA"),
+            "ha" | "hemagglutinin" | "haemagglutinin" => Some("HA"),
+            "np" | "nucleoprotein" => Some("NP"),
+            "na" | "neuraminidase" => Some("NA"),
+            "mp" | "m1" | "m2" | "matrix" => Some("MP"),
+            "ns" | "ns1" | "nep" | "nonstructural" => Some("NS"),
+            _ => None,
+        };
+        if let Some(m) = mapped {
+            if let Some(idx) = find_lm(m) {
+                return Some(idx);
+            }
+        }
+    }
+    None
 }
 
 /// One-sided Fisher's exact test (`alternative = "greater"`) on a 2x2 contingency table `[[a, b], [c, d]]`.

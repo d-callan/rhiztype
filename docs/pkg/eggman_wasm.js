@@ -12,7 +12,26 @@ export class WasmEggman {
         wasm.__wbg_wasmeggman_free(ptr, 0);
     }
     /**
-     * Return the embedded 200-lineage reference compendium as a JSON array.
+     * Inspect FASTA records and automatically infer whether the dataset is HIV-1, IAV, SARS-CoV-2, or Sarbecovirus.
+     * @param {string} fasta_text
+     * @returns {string}
+     */
+    detect_pathogen(fasta_text) {
+        let deferred2_0;
+        let deferred2_1;
+        try {
+            const ptr0 = passStringToWasm0(fasta_text, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+            const len0 = WASM_VECTOR_LEN;
+            const ret = wasm.wasmeggman_detect_pathogen(this.__wbg_ptr, ptr0, len0);
+            deferred2_0 = ret[0];
+            deferred2_1 = ret[1];
+            return getStringFromWasm0(ret[0], ret[1]);
+        } finally {
+            wasm.__wbindgen_free(deferred2_0, deferred2_1, 1);
+        }
+    }
+    /**
+     * Return the embedded HIV-1 200-lineage reference compendium as a JSON array.
      * @returns {string}
      */
     get_compendium_json() {
@@ -27,6 +46,25 @@ export class WasmEggman {
             wasm.__wbindgen_free(deferred1_0, deferred1_1, 1);
         }
     }
+    /**
+     * Return metadata and reference compendium JSON for a built-in pack (`hiv1`, `iav`, `sc2`, `sarbeco`).
+     * @param {string} pack_id
+     * @returns {string}
+     */
+    get_pack_meta_json(pack_id) {
+        let deferred2_0;
+        let deferred2_1;
+        try {
+            const ptr0 = passStringToWasm0(pack_id, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+            const len0 = WASM_VECTOR_LEN;
+            const ret = wasm.wasmeggman_get_pack_meta_json(this.__wbg_ptr, ptr0, len0);
+            deferred2_0 = ret[0];
+            deferred2_1 = ret[1];
+            return getStringFromWasm0(ret[0], ret[1]);
+        } finally {
+            wasm.__wbindgen_free(deferred2_0, deferred2_1, 1);
+        }
+    }
     constructor() {
         const ret = wasm.wasmeggman_new();
         this.__wbg_ptr = ret;
@@ -34,13 +72,7 @@ export class WasmEggman {
         return this;
     }
     /**
-     * Screen a FASTA string (aligned or unaligned, full-length or partial pol/env)
-     * and return a JSON array of `SequenceResult` objects.
-     *
-     * Parameters follow the UI contract where 0 means Auto: a non-finite or <= 0 `gamma`
-     * and a 0 `min_span_nt` become `None` (engine defaults). A non-finite or out-of-range
-     * `p_fisher_thresh` falls back to 1e-4 and 0 `min_informative_snps` to 5, so the
-     * WASM never runs with values the CLI would reject.
+     * Legacy HIV-1 FASTA screening entry point preserved for backward compatibility.
      * @param {string} fasta_text
      * @param {number} gamma
      * @param {number} min_span_nt
@@ -66,6 +98,50 @@ export class WasmEggman {
             return getStringFromWasm0(ret[0], ret[1]);
         } finally {
             wasm.__wbindgen_free(deferred7_0, deferred7_1, 1);
+        }
+    }
+    /**
+     * Screen a FASTA string using `"auto"` pathogen detection or an explicit pack id,
+     * automatically assembling multi-record Influenza A segments (`seg_mode`: `"auto"`, `"single_isolate"`, `"per_record"`).
+     * @param {string} pack_id
+     * @param {string} fasta_text
+     * @param {string} seg_mode
+     * @param {number} gamma
+     * @param {number} min_span_nt
+     * @param {number} min_informative_snps
+     * @param {number} p_fisher_thresh
+     * @param {boolean} mask_hypervariable_loops
+     * @returns {string}
+     */
+    screen_with_pack(pack_id, fasta_text, seg_mode, gamma, min_span_nt, min_informative_snps, p_fisher_thresh, mask_hypervariable_loops) {
+        let deferred9_0;
+        let deferred9_1;
+        try {
+            const val4 = +gamma;
+            const val5 = +min_span_nt;
+            const val6 = +min_informative_snps;
+            const val7 = +p_fisher_thresh;
+            const val8 = +mask_hypervariable_loops;
+            let ptr0, len0, ptr1, len1, ptr2, len2;
+            try {
+                ptr0 = passStringToWasm0(pack_id, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+                len0 = WASM_VECTOR_LEN;
+                ptr1 = passStringToWasm0(fasta_text, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+                len1 = WASM_VECTOR_LEN;
+                ptr2 = passStringToWasm0(seg_mode, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+                len2 = WASM_VECTOR_LEN;
+            } catch (e) {
+                if (ptr2) { wasm.__wbindgen_free(ptr2, len2 * 1, 1); }
+                if (ptr1) { wasm.__wbindgen_free(ptr1, len1 * 1, 1); }
+                if (ptr0) { wasm.__wbindgen_free(ptr0, len0 * 1, 1); }
+                throw e;
+            }
+            const ret = wasm.wasmeggman_screen_with_pack(this.__wbg_ptr, ptr0, len0, ptr1, len1, ptr2, len2, val4, val5, val6, val7, val8);
+            deferred9_0 = ret[0];
+            deferred9_1 = ret[1];
+            return getStringFromWasm0(ret[0], ret[1]);
+        } finally {
+            wasm.__wbindgen_free(deferred9_0, deferred9_1, 1);
         }
     }
 }

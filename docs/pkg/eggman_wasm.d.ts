@@ -5,20 +5,27 @@ export class WasmEggman {
     free(): void;
     [Symbol.dispose](): void;
     /**
-     * Return the embedded 200-lineage reference compendium as a JSON array.
+     * Inspect FASTA records and automatically infer whether the dataset is HIV-1, IAV, SARS-CoV-2, or Sarbecovirus.
+     */
+    detect_pathogen(fasta_text: string): string;
+    /**
+     * Return the embedded HIV-1 200-lineage reference compendium as a JSON array.
      */
     get_compendium_json(): string;
+    /**
+     * Return metadata and reference compendium JSON for a built-in pack (`hiv1`, `iav`, `sc2`, `sarbeco`).
+     */
+    get_pack_meta_json(pack_id: string): string;
     constructor();
     /**
-     * Screen a FASTA string (aligned or unaligned, full-length or partial pol/env)
-     * and return a JSON array of `SequenceResult` objects.
-     *
-     * Parameters follow the UI contract where 0 means Auto: a non-finite or <= 0 `gamma`
-     * and a 0 `min_span_nt` become `None` (engine defaults). A non-finite or out-of-range
-     * `p_fisher_thresh` falls back to 1e-4 and 0 `min_informative_snps` to 5, so the
-     * WASM never runs with values the CLI would reject.
+     * Legacy HIV-1 FASTA screening entry point preserved for backward compatibility.
      */
     screen_fasta(fasta_text: string, gamma: number, min_span_nt: number, min_informative_snps: number, p_fisher_thresh: number, mask_hypervariable_loops: boolean): string;
+    /**
+     * Screen a FASTA string using `"auto"` pathogen detection or an explicit pack id,
+     * automatically assembling multi-record Influenza A segments (`seg_mode`: `"auto"`, `"single_isolate"`, `"per_record"`).
+     */
+    screen_with_pack(pack_id: string, fasta_text: string, seg_mode: string, gamma: number, min_span_nt: number, min_informative_snps: number, p_fisher_thresh: number, mask_hypervariable_loops: boolean): string;
 }
 
 export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;
@@ -26,13 +33,16 @@ export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembl
 export interface InitOutput {
     readonly memory: WebAssembly.Memory;
     readonly __wbg_wasmeggman_free: (a: number, b: number) => void;
+    readonly wasmeggman_detect_pathogen: (a: number, b: number, c: number) => [number, number];
     readonly wasmeggman_get_compendium_json: (a: number) => [number, number];
+    readonly wasmeggman_get_pack_meta_json: (a: number, b: number, c: number) => [number, number];
     readonly wasmeggman_new: () => number;
     readonly wasmeggman_screen_fasta: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number) => [number, number];
+    readonly wasmeggman_screen_with_pack: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number, k: number, l: number) => [number, number];
     readonly __wbindgen_externrefs: WebAssembly.Table;
-    readonly __wbindgen_free: (a: number, b: number, c: number) => void;
     readonly __wbindgen_malloc: (a: number, b: number) => number;
     readonly __wbindgen_realloc: (a: number, b: number, c: number, d: number) => number;
+    readonly __wbindgen_free: (a: number, b: number, c: number) => void;
     readonly __wbindgen_start: () => void;
 }
 
