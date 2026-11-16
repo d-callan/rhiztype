@@ -13,7 +13,7 @@
 Through declarative **`PathogenSpec` profile packs (`--pack`)**, the exact same segmentation, guard, and naming math operates out of the box on both **contiguous template-switching viruses** (HIV-1 Group M, SARS-CoV-2, bat/pangolin sarbecoviruses) and **multipartite segmented reassorting viruses** (8-segment Influenza A H5N1)—with **zero source code changes**.
 
 <p align="center">
-  <img src="docs/figures/fig0_multipathogen_overview.png" width="98%" alt="Empirical benchmark performance across HIV-1, Influenza A 8-segment reassortment, SARS-CoV-2, and Sarbecovirus genomes">
+  <img src="docs/figures/fig1_multipathogen_coordinate_atlas.png" width="98%" alt="Coordinate-anchored deconvolution and empirical benchmark performance across 8-segment Influenza A H5N1 reassortment, clinical SARS-CoV-2, wildlife sarbecovirus, and HIV-1 genomes">
 </p>
 
 ---
@@ -60,7 +60,7 @@ eggman --export-default-pack custom_pack/manifest.json
 
 3. **Canonical Descriptive Coordinate Grammar & Partition Clocking (`ChronAeon`)**
    - Encodes verified mosaic paths deterministically under a formal Backus–Naur Form grammar (`<Backbone>[<Donor>:<GeneSpan>]@<Scope>`, separating independent donors by `|`, disjoint regions by `+`, and spans by `..`).
-   - Paired with tree-free root-to-tip molecular dating in `ChronAeon` (exponential early-sample weighting $\lambda = 0.10\text{ yr}^{-1}$, Steiner $\frac{1}{2} h_{QQ}$ heterozygosity subtraction, Jukes–Cantor Gamma $\alpha_{\Gamma} = 0.20$, and genomic block-bootstrap CIs; validated against `LSD2` $\rho = 0.814$ and `TreeTime` $\rho = 0.791$).
+   - Paired with companion tree-free molecular clock estimator [`ChronAeon`](https://zenodo.org/records/23560893) (exponential early-sample weighting $\lambda = 0.10\text{ yr}^{-1}$, Steiner $\frac{1}{2} h_{QQ}$ heterozygosity subtraction, Jukes–Cantor Gamma $\alpha_{\Gamma} = 0.20$, and genomic block-bootstrap CIs; validated against `LSD2` $\rho = 0.814$ and `TreeTime` $\rho = 0.791$).
 
 ---
 
