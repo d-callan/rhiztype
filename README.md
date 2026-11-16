@@ -1,169 +1,208 @@
-# RhizType — HIV-1 Group M Subtyping, Mosaic Deconvolution & Coordinate Nomenclature
+# EGGMAN
 
-**RhizType** is a high-throughput Rust command-line tool and client-side WebAssembly (WASM) browser application for screening **aligned or unaligned HIV-1 Group M FASTA sequences** (full-length genomes, partial `pol` PR-RT-IN surveillance amplicons, partial `env` gp120-gp41 sequences, or arbitrary coding fragments) for subtype assignment, mosaic breakpoint verification, and coordinate-resolved descriptive nomenclature.
+**E**xact **G**enomic **G**enealogy and **M**osaic **A**ncestry **N**omenclature
 
-- **Web Application (100% Client-Side WASM):** [https://veg.github.io/rhiztype/](https://veg.github.io/rhiztype/)
-- **Source Repository:** [https://github.com/veg/rhiztype](https://github.com/veg/rhiztype)
+[![Language: Rust](https://img.shields.io/badge/Language-Rust%20%28Edition%202021%29-DEA584.svg)](#installation--rust-cli)
+[![WebApp: Rust WASM](https://img.shields.io/badge/WebApp-GitHub%20Pages%20%28WASM%29-ff4f00.svg)](https://veg.github.io/eggman/)
+[![CI: Cargo Test + WASM](https://img.shields.io/badge/CI-42%2F42%20Passing-2a8c62.svg)](.github/workflows/ci.yml)
 
----
+> *"Come together: coordinate-anchored recombination, segment reassortment, and mosaic nomenclature across pandemic RNA viruses."*
 
-## Key Capabilities
+**EGGMAN** is a native Rust (`eggman-core`, `eggman-cli`) and WebAssembly (`eggman-wasm`) engine for **cross-pathogen mosaic deconvolution, reassortment calling, and evolutionary nomenclature**. Rather than flattening recombinant or reassorted viruses into arbitrary sequential integers (`CRF01`–`CRF157`, Pango `X*` prefixes, or unindexed `URF` strings), EGGMAN projects unaligned or pre-aligned genomes onto canonical viral coordinates, verifies template switches or segment exchanges with exact Fisher tests, and reports deterministic coordinate barcodes alongside statistically guarded lineage calls.
 
-1. **Accepts Unaligned or Pre-Aligned FASTA Sequences Automatically**
-   - **Pre-aligned inputs** mapped to HXB2 (`9,719 nt`), HXB2 coding span (`8,628 nt`, `HXB2 790–9417`), or the LANL 2023 HIV-1 Reference Compendium MSA (`11,531 columns`) are projected directly in $O(L)$ time.
-   - **Unaligned sequences** (complete genomes or partial amplicons; at least $100\text{ nt}$ of usable coding positions are required, counted as unambiguous mapped coding positions before hypervariable-loop masking, not raw input length) are automatically aligned to HXB2 coordinates using a two-stage **15-mer / 11-mer anchor seed hash + collinear sparse dynamic programming chain + banded Needleman-Wunsch** aligner against the Group M basal trunk ensemble.
+Through declarative **`PathogenSpec` profile packs (`--pack`)**, the exact same segmentation, guard, and naming math operates out of the box on both **contiguous template-switching viruses** (HIV-1 Group M, SARS-CoV-2, bat/pangolin sarbecoviruses) and **multipartite segmented reassorting viruses** (8-segment Influenza A H5N1)—with **zero source code changes**.
 
-2. **Two-Tier Reference Panel & Guarded Certified Lineage Calling**
-   - **Tier 1 (Alignment + Dual Segmentation):** Retains the 14-trunk ancestral deconvolution basis (`A1, A2, A6, B, C, D, F1, F2, G0, H, J, K, L, ?E`, indexed alongside 5 major divergent founders `CRF01_AE, CRF02_AG, Subtype_G, CRF06_cpx, CRF07_BC` for higher alignment recall) and adds a 25-state epidemiological Viterbi panel (`13` pure subtypes with `G = Subtype_G` + `12` founder CRFs) to resolve second-generation URFs (e.g., `CRF01_AE[B:RT]@pol`).
-   - **Tier 2 (Certified Clade Caller, `165` Profiles):** Screens queries against `139` verified LANL CRFs, `6` collapsed-stem CRFs, `5` derived pure subtypes/sub-subtypes (`G, A3, A4, A7, A8`), and `15` novel circulating CRFs (`NOVEL_CRF_01..15`) guarded by:
-     1. Donor-tract completeness & window distinguishability;
-     2. Recombination-DAG parental distinguishability;
-     3. Binomial clade-stem synapomorphy testing against the closest pure basal subtype (excluding `?E`);
-     4. Residual breakpoint Kadane scan rejecting second-generation URFs.
-
-3. **Hypervariable Loop Shield & Local $2 \times 2$ Fisher Exact Breakpoint Verification**
-   - Automatically masks length-polymorphic hypervariable loops (`gp120` V1–V5 and `gag` p6 PTAP duplication hotspots) before segmentation so alignment indel noise never triggers false mosaic calls, while preserving all coding positions across `pol` (`PR`, `RT`, `IN`).
-   - Evaluates every candidate recombination junction via a one-sided $2 \times 2$ Fisher's exact test ($p < 10^{-4}$ default) and a minimum informative-SNP support floor ($n_{11}, n_{22} \ge 5$), reporting informative-site plateau brackets (`[CI:low-high]`: nearest flanking informative sites; not a coverage-probability CI; may be one-sided or zero-width at junctions with `?E`/unattributed segments). With perfect separation, the default $p < 10^{-4}$ requires roughly $\ge 8$ informative sites per side (5|5 gives $p \approx 4\times10^{-3}$), so the $n_{11}, n_{22} \ge 5$ floor is necessary but not sufficient. Junctions involving the unattributed (ghost) state test novel-mutation density, with the known trunk's matches as the comparison row, rather than the pairwise informative-SNP count.
-
-4. **Dual Output Schema & 200-Lineage Compendium Matching**
-   - Reports both **epidemiological classification** (`called_lineage`, `called_category`, `call_support`, `epidemiological_formula`, `epidemiological_barcode`, `epidemiological_segments`) and **14-trunk ancestral deconvolution** (`basal_formula`/`descriptive_name`, `basal_barcode`/`hxb2_barcode`, `structural_formula`, `backbone_trunk`, `segments`, `breakpoints`), cross-referenced against 200 cataloged lineages.
+<p align="center">
+  <img src="docs/figures/fig0_multipathogen_overview.png" width="98%" alt="Empirical benchmark performance across HIV-1, Influenza A 8-segment reassortment, SARS-CoV-2, and Sarbecovirus genomes">
+</p>
 
 ---
 
-## Workspace Architecture
+## Multi-Pathogen Scope (`--pack`)
+
+Every biological assumption—genome span, gene landmarks, basal trunk consensuses, segmentation boundaries, and certified clade constellations—lives cleanly inside an external JSON/FASTA/TSV bundle rather than hard-coded branches:
+
+| Pathogen Pack | Genome Type | Reference Span | Key Mechanism Modeled | Example Verified Coordinate Barcode | Empirical Batch Throughput (M3) |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **HIV-1 Group M** *(built-in default)* | Contiguous retrovirus | `8,628 nt` (`HXB2 790–9417`) | Template switching + locus-restricted `?E` trunk | `D[A1:env]@1986` | **`2,435 seq/s`** (`0.45 s` / 1,093 seqs) |
+| [`packs/influenza_a_8seg`](packs/influenza_a_8seg) | **8-segment** RNA virus | `13,136 nt` (`PB2`–`NS`) | Zero-penalty segment reassortment ($\gamma = 0$) + intra-segment lock ($10^6$) | `NAm_B313[EA1:PA+HA+NA+MP]` | **`8,343 seq/s`** (`0.144 s` / 1,200 seqs) |
+| [`packs/sars_cov2_wuhan`](packs/sars_cov2_wuhan) | Contiguous coronavirus | `29,903 nt` (`Wuhan-Hu-1`) | 32-bit coordinate anchoring + tunable low-SNP floor ($n_{\min} \ge 3$) | `BJ.1[BM.1.1.1:S..ORF10]` | **`2,539 seq/s`** (`0.394 s` / 1,000 seqs) |
+| [`packs/sarbecovirus_wuhan`](packs/sarbecovirus_wuhan) | Divergent coronavirus | `29,904 nt` (`Wuhan-Hu-1`) | Deep homologous recombination over basal wildlife clades | `SARS2_Wuhan[Bat_RpYN06:ORF1a+S+N..ORF10]` | **`1,197 seq/s`** (`0.066 s` / 79 seqs) |
+
+```bash
+# Default HIV-1 Group M full genomes or partial pol/env amplicons (aligned or unaligned)
+eggman query_hiv.fasta --out results.csv --json results.json
+
+# 8-segment Influenza A H5N1 reassortment calling (e.g., B3.13 dairy cattle, D1.1 bird)
+eggman h5n1_concatenated.fasta --pack packs/influenza_a_8seg --out flu_calls.csv
+
+# Clinical SARS-CoV-2 surveillance (low-divergence coronavirus tuning)
+eggman sc2.fasta --pack packs/sars_cov2_wuhan --gamma 3.5 --min-snps 3 --p-thresh 0.01
+
+# Natural bat/pangolin sarbecovirus genomes
+eggman sarbeco.fasta --pack packs/sarbecovirus_wuhan --out sarbeco_calls.csv
+
+# Export the built-in HIV-1 PathogenSpec manifest as a starting template for any virus
+eggman --export-default-pack custom_pack/manifest.json
+```
+
+---
+
+## Core Architecture
+
+1. **Seeded 32-Bit Coordinate Projection & Unmasked Alignment**
+   - Indexes exact $15$-mer anchors ($4^{-15} = 9.31 \times 10^{-10} \ll 1/L$) stored as **32-bit unsigned reference offsets**, accommodating viral chromosomes well past $20\text{ kb}$ alongside an $11$-mer fallback for divergent amplicons.
+   - Chains collinear anchors and runs **banded Needleman–Wunsch dynamic programming** ($B = |\Delta L| + 35\text{ nt}$ / $45\text{ nt}$ default) without masking HIV-1 drug-resistance codons in `pol`, preserving short clinically diagnostic insertions such as the $216\text{-nt}$ Subtype `B` `pol.RT` tract (`HXB2 2964–3179`) in `CRF07_BC`.
+
+2. **Two-Tier Mosaic Deconvolution vs. Guarded Clade Calling**
+   - **Tier 1 (Invariant Basal Barcode):** Runs penalized Viterbi segmentation over clean scrubbed basal trunks (14 trunks for HIV-1 including scrubbed `G0` and the `vif–nef`-restricted `?E` ghost trunk) with Dirichlet-multinomial emissions ($\alpha = 0.08$). On segmented pathogens (`is_segmented = true`), the transition penalty $\gamma(x)$ drops to **`0 nats`** at inter-segment boundaries and locks at **`10^6 nats`** within segments. Every candidate crossover requires flanking span coverage, $\ge n_{\min}$ diagnostic SNPs ($|\Delta \ln P| \ge 0.5\text{ nats}$), and two-sided $2 \times 2$ Fisher exact verification ($p_{\mathrm{Fisher}} < 10^{-4}$).
+   - **Tier 2 (Guarded Certified Clade Caller):** Evaluates curated clade consensuses (`165` HIV-1 profiles; USDA/Pango constellations in external packs) across four strict statistical checks—**(1)** coverage/identity plurality, **(2)** recombination-DAG parent binomial dominance ($n_c - n_u \ge 5$), **(3)** lineage-defining clade-stem synapomorphies ($\Delta_{\mathrm{stem}} \ge 8$, $p \le 10^{-4}$), and **(4)** a linear-time **Kadane maximum-subarray residual scan** ($\ge 80\text{ nt}$, $\max S \ge 12$, $p < 10^{-4}$) against rival founders—defaulting uncertified or novel mosaics safely to `URF`.
+
+3. **Canonical Descriptive Coordinate Grammar & Partition Clocking (`ChronAeon`)**
+   - Encodes verified mosaic paths deterministically under a formal Backus–Naur Form grammar (`<Backbone>[<Donor>:<GeneSpan>]@<Scope>`, separating independent donors by `|`, disjoint regions by `+`, and spans by `..`).
+   - Paired with tree-free root-to-tip molecular dating in `ChronAeon` (exponential early-sample weighting $\lambda = 0.10\text{ yr}^{-1}$, Steiner $\frac{1}{2} h_{QQ}$ heterozygosity subtraction, Jukes–Cantor Gamma $\alpha_{\Gamma} = 0.20$, and genomic block-bootstrap CIs; validated against `LSD2` $\rho = 0.814$ and `TreeTime` $\rho = 0.791$).
+
+---
+
+## Key Scientific Findings (Manifold Atlas & Manuscript Figures)
+
+### 1. Genome-Wide Breakpoint Flux & Coordinate Barcode Atlas
+Coordinate deconvolution eliminates opaque sequential aliases across generations of recombinants while mapping HIV-1 breakpoint density to structural boundaries:
+
+<p align="center">
+  <img src="docs/figures/fig2_descriptive_nomenclature_mosaic_atlas.png" width="98%" alt="HIV-1 breakpoint flux and coordinate-anchored mosaic atlas">
+</p>
+
+### 2. Basal Reference Scrubbing & LANL Breakpoint Audit
+Auditing the 2023 LANL compendium uncovers **12 verified foreign tracts inside 10 nominal "pure" references** (all four Subtype G references carry ancestral `G0[A1:gp41..nef]`), restores the 1956 emergence of `CRF02_AG` ahead of Subtype G (`1961.5`), and shows that **64.0% (`700/1,093`) of legacy declared CRF boundaries lack elementary Fisher support** (`6` clonal collapses, `15` redundant aliases, and `48.2%` of mosaic CRFs descending from just three founder hubs across a 3-generation DAG):
+
+<p align="center">
+  <img src="docs/figures/fig1_subtype_temporal_and_crf_pathology.png" width="98%" alt="Root-to-tip chronology, breakpoint verification, and LANL reference audit">
+</p>
+
+### 3. Discovery & Phylogenetic Confirmation of 38 Unindexed Circulating Lineages
+Patient deduplication (`<0.8%` Hamming threshold across `31,825` full genomes and `120,930` partial reads) unites `38` unrecognized circulating HIV-1 lineages across `29` countries (`15` full-genome clusters confirmed across **`75/75` IQ-TREE 2 segment trees** at `100%` median `UFBoot`, plus `23` strictly partial *pol*/*env* lineages including the 86-patient East African `D[A1:env]@1986` cluster spanning 26 studies):
+
+<p align="center">
+  <img src="docs/figures/fig3_novel_lineages_segment_phylogenies.png" width="98%" alt="Segment-by-segment IQ-TREE 2 phylogenies of novel circulating HIV-1 lineages">
+</p>
+
+### 4. Ecological Co-Circulation Supply & Two-Stage Epistatic Fitness Sieve
+While national circulating heterozygosity $H_{\mathrm{circ}}$ governs upstream generation ($\rho = 0.600, p = 2.83 \times 10^{-4}$; WLS $R^2 = 0.667$), Yule–Pareto cluster scaling ($\hat{\alpha} = 1.88$) splits survival into a **Stage 1 folding sieve** (depleting breakpoints in `gp120` [`0.39x`] and `Gag-CA` [`0.43x`] cores and preserving `gp120`–`gp41-ecto` co-ancestry at `92.2%`) and a **Stage 2 transmission sieve** (escalating spliced `tat` exon 1–exon 2 co-ancestry from `60.7%` in singletons to `72.7%` in established CRFs [CMH `OR = 2.10`] and `81.8%` in major CRFs [`OR = 3.60`]):
+
+<p align="center">
+  <img src="docs/figures/fig5_viability_sieve_and_partial_scale_discovery.png" width="98%" alt="Regional heterozygosity supply and two-stage selective sieve">
+</p>
+
+---
+
+## Empirical Benchmarks
+
+### Cross-Pathogen Benchmarks (`--pack` on Apple M3, `N = 2,279` Non-HIV Genomes)
+
+| Pathogen Pack | Cohort Evaluated | $N$ | Runtime (`s`) | Specificity | Mosaic / Genotype Accuracy | Highlighted Operating Behavior |
+| :--- | :--- | :---: | :---: | :---: | :---: | :--- |
+| `influenza_a_8seg` (`13,136 nt`) | Pure Eurasian `A1`, `A3` founders | 150 | 0.144 | **100.0%** clonal | — | Zero Tier-1 or Tier-2 false reassortants |
+| `influenza_a_8seg` (`13,136 nt`) | 8 H5N1 reassortant genotypes | 950 | 0.144 | — | **94.74%** exact / **100.0%** parent | **100%** on `B3.13` (`500/500`), `D1.1` (`150/150`), `B3.6`, `B2.1`, `D1.3`, `D1.8`, `B3.2`; conservative `URF` on `C2.1` |
+| `influenza_a_8seg` (`13,136 nt`) | Masked `B3.13` + `D1.1` OOD holdout | 650 | 0.096 | **100.0%** `URF` | **100.0%** exact Tier-1 | Exact 8-segment formulas for all `650/650` unseen isolates |
+| `influenza_a_8seg` (`13,136 nt`) | USDA-unassigned assemblies | 100 | 0.144 | — | **99.0%** mosaic | Recovers `62` `D1.8` and `18` novel `URF` constellations |
+| `sars_cov2_wuhan` (`29,903 nt`) | Parental waves ($\gamma = 7.0, n_{\min}=5$) | 500 | 0.394 | **94.4%** (**97.9%** non-`BA.2`) | — | Uncovers `9` `XBB.1.5`/`XBB.1.16` + `1` `XBC` in Spike-archived `BA.2` |
+| `sars_cov2_wuhan` (`29,903 nt`) | Clinical recombinants ($\gamma = 7.0$) | 500 | 0.394 | — | **91.6%** exact / **96.2%** Tier-1 | **100%** `XD`/`XE`, `98.1–98.2%` `XBB`/`XBB.1.16`, flags `XDV` as `URF` |
+| `sars_cov2_wuhan` (`29,903 nt`) | CoV-tuned ($\gamma = 3.5, n_{\min}=3, p<0.01$) | 1,000 | 0.379 | 89.2% Tier-1 | **98.2%** Tier-1 | Rescues **`5/6` (`83.3%`)** 4-SNP `XEC` (`KS.1.1[KP.3.3:S..ORF10]`) |
+| `sarbecovirus_wuhan` (`29,904 nt`) | Non-redacted whole genomes | 79 | 0.066 | **5/5** clonal basals | **83.8%** (`62/74`) mosaic | Median `5.0` breakpoints (`RaTG13`, `BANAL-52`, `CoVZC45`, `PrC31`); 4 all-`N` entries excluded |
+
+### HIV-1 Nine-Panel Benchmark vs. `COMET v2.4` and `jpHMM` (`N = 1,093`)
+
+- **Throughput:** **`0.45 s` local (`2,435 seq/s`)** and `2.11 s` on M3 (`518 seq/s`) vs. **`11,280.0 s` wall clock (`271,492.9 s` CPU)** for 28-worker `jpHMM`.
+- **Accuracy & Generalization:**
+  - **`CRF01–CRF118` references (`N = 369`):** **`98.6%`** exact (`COMET v2.4`: `98.1%`).
+  - **Clinical named CRFs (`N = 150`):** **`92.7%`** exact (**`+21.4 pp`** over COMET `71.3%`) and **`97.3%`** mosaic state (**`+40.0 pp`** over `jpHMM` `57.3%`), with `100.0%` parental recall and comparable junction precision (median error `27.0 nt`, IQR `0.0–72.0` vs. `jpHMM` `24.0 nt`, IQR `8.0–91.0`).
+  - **Out-of-Dictionary & Novel CRFs (`CRF119–157` + `NOVEL_CRF_01..15`, `N = 155`):** **`95.7%` / `95.1%`** exact when catalogued (`COMET`: `0.0%`); under matched OOD masking, EGGMAN flags **`90.97%`** cleanly as `URF` (`9.03%` legacy overlap vs. COMET's `76.13%` misassigned legacy calls).
+  - **1,000-Genome Non-Recombinant Simulations (`GTR+G4` / Rate-Spike / APOBEC):** **`0.0%` (`0/1,000`)** Tier-1 false recombinants and `99.3%` Tier-2 specificity (`0.0%` false CRFs).
+  - **Stanford HIVDB Clinical Census (`N = 120,468` *pol* sequences):** Audits `21,215` (`17.61%`) record discrepancies including `8,298` intra-patient `PR/RT/IN` splits across `7,718` patients.
+
+---
+
+## Interactive WebApp (Rust + WASM)
+
+- **Live Browser App:** **[https://veg.github.io/eggman/](https://veg.github.io/eggman/)**
+
+Runs 100% client-side in any modern browser ([`docs/index.html`](docs/index.html)) via compiled `wasm32` bindings ([`crates/eggman-wasm`](crates/eggman-wasm)):
+- Drop aligned or unaligned FASTA sequences or load built-in demo cohorts (`demos.fasta`, `crf01_02.fasta`, `subtype_g.fasta`, `partial_env.fasta`).
+- Adjust Tier-1 Viterbi switch penalty (`γ`), Fisher significance threshold, minimum informative SNPs, and loop masking dynamically, then export tabular **CSV** (`eggman_results.csv`) or detailed **JSON** (`eggman_results.json`) reports with interactive chromosome mosaic paintbars.
+
+---
+
+## Installation & Rust CLI
+
+Requires Rust (`Edition 2021`, `cargo`).
+
+```bash
+git clone https://github.com/veg/eggman.git
+cd eggman
+cargo build --release
+```
+
+### Usage
 
 ```text
-rhiztype/
-├── Cargo.toml                  # Rust workspace manifest
+./target/release/eggman [OPTIONS] [INPUT_POS]
+
+Arguments:
+  [INPUT_POS]                      Positional FASTA path if --fasta is omitted
+
+Options:
+  -f, --fasta <FASTA>              Input FASTA file (aligned or unaligned, full-length or partial amplicon)
+      --pack <PACK>                Custom pathogen profile pack (JSON manifest or directory with manifest.json)
+      --export-default-pack <PATH> Export the built-in HIV-1 Group M PathogenSpec manifest template and exit
+  -o, --out <OUT>                  Output CSV file path
+      --json <JSON>                Output JSON report path (segments, breakpoints, guards, coordinates)
+  -l, --limit <LIMIT>              Maximum sequences to process [default: 0 = all]
+      --gamma <GAMMA>              Template-switch penalty gamma in nats [default: 7.0]
+      --min-span <MIN_SPAN>        Minimum segment span in reference nt [auto: 120 full / 150 partial]
+      --min-snps <MIN_SNPS>        Minimum diagnostic SNPs per flanking segment [default: 5]
+      --p-thresh <P_THRESH>        Two-sided 2x2 Fisher exact p-value cutoff [default: 1e-4]
+      --no-loop-mask               Disable hypervariable indel-loop masking prior to segmentation
+      --profiles <PROFILES>        Optional custom Tier-2 certified profiles TSV path
+  -q, --quiet                      Suppress per-sequence console report
+  -h, --help                       Print help
+  -V, --version                    Print version
+```
+
+### Rebuilding the WASM Web Bundle & Running Tests
+
+```bash
+# Run all 42 unit & integration tests
+cargo test --workspace --locked
+
+# Rebuild docs/pkg WebAssembly assets
+wasm-pack build crates/eggman-wasm --target web --out-dir ../../docs/pkg --out-name eggman_wasm
+```
+
+---
+
+## Repository Structure
+
+```text
+eggman/
+├── Cargo.toml                           # Workspace manifest (eggman-core, eggman-cli, eggman-wasm)
+├── Cargo.lock                           # Locked dependency graph
+├── README.md                            # Documentation, figures, and cross-pathogen benchmarks
+├── LICENSE                              # MIT License
 ├── crates/
-│   ├── rhiztype-core/          # Core alignment, Viterbi PA-FF segmentation, Fisher exact & compendium engine
-│   ├── rhiztype-cli/           # Parallel (Rayon) native command-line binary (`rhiztype`)
-│   └── rhiztype-wasm/          # WebAssembly (`wasm-bindgen`) bindings for browser execution
-└── docs/                       # Static GitHub Pages web app + compiled WASM bundle + example FASTAs
-    ├── index.html
-    ├── pkg/
-    └── examples/
+│   ├── eggman-core/                     # Reference-anchored alignment, Tier-1/2 engines, ChronAeon/pack structs & 32 tests
+│   ├── eggman-cli/                      # Parallel rayon CLI binary (`eggman`) & 10 integration tests
+│   └── eggman-wasm/                     # Client-side WebAssembly bindings (`WasmEggman`)
+├── packs/
+│   ├── influenza_a_8seg/                # 8-segment Influenza A H5N1 reassortment pack (PB2–NS)
+│   ├── sars_cov2_wuhan/                 # Clinical SARS-CoV-2 homologous recombination pack (Wuhan-Hu-1)
+│   └── sarbecovirus_wuhan/              # Wildlife bat/pangolin sarbecovirus pack (29,904 nt)
+├── docs/
+│   ├── index.html                       # Zero-server interactive WASM WebApp
+│   ├── pkg/                             # Compiled wasm-pack bundle (`eggman_wasm_bg.wasm`)
+│   ├── examples/                        # Built-in specimen FASTA files
+│   └── figures/                         # Manuscript & multi-pathogen benchmark figures (PNGs)
+└── .github/workflows/
+    ├── ci.yml                           # Automated workspace build, tests, & wasm32 check
+    └── deploy-pages.yml                 # Automated GitHub Pages deployment from docs/
 ```
-
----
-
-## CLI Installation & Usage
-
-### Build from Source
-
-Requires Rust (`1.75+`):
-
-```bash
-git clone https://github.com/veg/rhiztype.git
-cd rhiztype
-cargo build --release -p rhiztype-cli
-```
-
-The optimized binary is placed at `./target/release/rhiztype` (and can be installed into `~/.cargo/bin` via `cargo install --path crates/rhiztype-cli`).
-
-### Screen Sequences (Unaligned or Aligned FASTA)
-
-```bash
-# Screen example HIV-1 genomes (5 isolates: HXB2, CRF01_AE, CRF02_AG, CRF06_cpx, CRF07_BC 98CN009)
-./target/release/rhiztype docs/examples/demos.fasta
-
-# Screen unaligned partial env sequences and export CSV + JSON reports
-./target/release/rhiztype docs/examples/partial_env.fasta \
-  --out env_results.csv \
-  --json env_results.json
-
-# Customize statistical stringency or disable loop masking
-./target/release/rhiztype input.fasta \
-  --p-thresh 1e-4 \
-  --min-snps 5 \
-  --out results.csv
-
-# Set parallelism with the Rayon environment variable
-RAYON_NUM_THREADS=8 ./target/release/rhiztype input.fasta --out results.csv
-```
-
-| Flag | Meaning |
-|---|---|
-| `--fasta`/`-f` or positional | Input FASTA (aligned or unaligned) |
-| `--out`/`-o` | CSV report path |
-| `--json` | JSON report path |
-| `--limit`/`-l` | Maximum number of records to process |
-| `--gamma` | Viterbi switch penalty (default 7.0) |
-| `--min-span` | Minimum segment span in nt (auto: 120 full / 150 partial) |
-| `--min-snps` | Minimum informative SNPs per segment (5) |
-| `--p-thresh` | Fisher exact p-value threshold (1e-4) |
-| `--no-loop-mask` | Disable hypervariable loop masking |
-| `--quiet`/`-q` | Suppress console report |
-
-### Example Output
-
-```text
-================================================================================================
-RHIZTYPE HIV-1 GROUP M SUBTYPING & RECOMBINATION CLASSIFIER (N=5 sequences, 0.028s)
-================================================================================================
-
-> Ref.B.FR.83.HXB2_LAI_IIIB_BRU.K03455_unaligned
-  Alignment / Scope   : Pre-aligned (HXB2 9,719 nt) | full (HXB2 790..9417, 8628 mapped coding nt)
-  Descriptive Formula : B(Clonal)
-  HXB2 Barcode        : B:790-9417
-  CI-Bracketed Map    : B:790-9417[CI:790-9417]
-  Compendium Match    : Subtype_B [Exact Structural Formula]
-
-> Ref.01_AE.TH.90.CM240.U54771_unaligned
-  Alignment / Scope   : Auto-aligned (15-mer anchor + banded NW to HXB2) | full (HXB2 790..9417, 8567 mapped coding nt)
-  Descriptive Formula : A1[?E:vif..nef]
-  HXB2 Barcode        : A1:790-5150|?E:5151-9417
-  CI-Bracketed Map    : A1:790-5150[CI:790-5151]|?E:5151-9417[CI:5151-9417]
-  Compendium Match    : CRF01_AE [Exact Structural Formula]; CRF100_01C [Exact Structural Formula]; CRF114_0155 [Exact Structural Formula]; CRF101_01B [Homologous Mosaic (95.1% concordance, 1/2 breakpoints)]
-  Verified Junctions  : HXB2 5151 (A1->?E, CI 5151-5151, p=3.89e-216)
-
-> Ref.02_AG.NG.x.IBNG.L39106_unaligned
-  Alignment / Scope   : Auto-aligned (15-mer anchor + banded NW to HXB2) | full (HXB2 790..9417, 8559 mapped coding nt)
-  Descriptive Formula : A1[G0:gag..RT+RT..vif+tat1..gp120+nef]
-  HXB2 Barcode        : A1:790-2190|G0:2191-3194|A1:3195-4119|G0:4120-5516|A1:5517-5989|G0:5990-6332|A1:6333-8909|G0:8910-9417
-  CI-Bracketed Map    : A1:790-2190[CI:790-2203]|G0:2191-3194[CI:2190-3203]|A1:3195-4119[CI:3194-4128]|G0:4120-5516[CI:4119-5519]|A1:5517-5989[CI:5516-5992]|G0:5990-6332[CI:5989-6341]|A1:6333-8909[CI:6332-8912]|G0:8910-9417[CI:8909-9417]
-  Compendium Match    : CRF02_AG [Homologous Mosaic (83.7% concordance, 4/5 breakpoints)]
-  Verified Junctions  : HXB2 2191 (A1->G0, CI 2190-2203, p=2.20e-11); HXB2 3195 (G0->A1, CI 3194-3203, p=2.05e-11); HXB2 4120 (A1->G0, CI 4119-4128, p=1.49e-11); HXB2 5517 (G0->A1, CI 5516-5519, p=4.46e-7); HXB2 5990 (A1->G0, CI 5989-5992, p=9.39e-6); HXB2 6333 (G0->A1, CI 6332-6341, p=7.22e-8); HXB2 8910 (A1->G0, CI 8909-8912, p=3.21e-11)
-
-> Ref.06_cpx.AU.96.BFP90.AF064699_unaligned
-  Alignment / Scope   : Auto-aligned (15-mer anchor + banded NW to HXB2) | full (HXB2 790..9417, 8575 mapped coding nt)
-  Descriptive Formula : G0[A1:gag.MA..gag.CA+RT..IN | K:RT | J:IN..tat1+gp41..nef]
-  HXB2 Barcode        : A1:790-1470|G0:1471-3209|K:3210-4136|A1:4137-4861|J:4862-6020|G0:6021-8261|J:8262-9417
-  CI-Bracketed Map    : A1:790-1470[CI:790-1473]|G0:1471-3209[CI:1470-3224]|K:3210-4136[CI:3209-4138]|A1:4137-4861[CI:4136-4925]|J:4862-6020[CI:4861-6021]|G0:6021-8261[CI:6020-8895]|J:8262-9417[CI:8261-9417]
-  Compendium Match    : CRF06_cpx [Homologous Mosaic (90.2% concordance, 4/6 breakpoints)]
-  Verified Junctions  : HXB2 1471 (A1->G0, CI 1470-1473, p=5.46e-15); HXB2 3210 (G0->K, CI 3209-3224, p=1.23e-9); HXB2 4137 (K->A1, CI 4136-4138, p=6.65e-9); HXB2 4862 (A1->J, CI 4861-4925, p=3.29e-9); HXB2 6021 (J->G0, CI 6020-6021, p=5.16e-23); HXB2 8262 (G0->J, CI 8261-8895, p=3.84e-44)
-
-> Ref.07_BC.CN.98.98CN009.AF286230_unaligned
-  Alignment / Scope   : Auto-aligned (15-mer anchor + banded NW to HXB2) | full (HXB2 790..9417, 8579 mapped coding nt)
-  Descriptive Formula : C[B:gag..PR+RT+vpr..gp120+nef]
-  HXB2 Barcode        : C:790-1980|B:1981-2541|C:2542-2939|B:2940-3179|C:3180-5679|B:5680-6428|C:6429-8842|B:8843-9057|C:9058-9417
-  CI-Bracketed Map    : C:790-1980[CI:790-1990]|B:1981-2541[CI:1980-2552]|C:2542-2939[CI:2541-2953]|B:2940-3179[CI:2939-3206]|C:3180-5679[CI:3179-5680]|B:5680-6428[CI:5679-6434]|C:6429-8842[CI:6428-8847]|B:8843-9057[CI:8842-9061]|C:9058-9417[CI:9057-9417]
-  Compendium Match    : CRF07_BC [Homologous Mosaic (95.0% concordance, 6/6 breakpoints)]
-  Verified Junctions  : HXB2 1981 (C->B, CI 1980-1990, p=2.58e-13); HXB2 2542 (B->C, CI 2541-2552, p=1.33e-12); HXB2 2940 (C->B, CI 2939-2953, p=3.71e-11); HXB2 3180 (B->C, CI 3179-3206, p=1.08e-14); HXB2 5680 (C->B, CI 5679-5680, p=4.38e-22); HXB2 6429 (B->C, CI 6428-6434, p=1.20e-25); HXB2 8843 (C->B, CI 8842-8847, p=1.53e-13); HXB2 9058 (B->C, CI 9057-9061, p=1.09e-11)
-```
-
----
-
-## Rebuilding the WebAssembly (WASM) Bundle
-
-To recompile the browser WebAssembly package into `docs/pkg/`:
-
-```bash
-rustup target add wasm32-unknown-unknown
-wasm-pack build crates/rhiztype-wasm --target web --out-dir ../../docs/pkg --release && rm -f docs/pkg/.gitignore
-```
-
-`docs/pkg/` is a committed binary artifact: rebuild and commit it whenever `crates/rhiztype-core` changes, since CI only uploads `docs/` and does not deploy a rebuilt bundle. Run `cargo test --workspace` before rebuilding.
-
-To test the web application locally:
-
-```bash
-python3 -m http.server 8080 --directory docs
-# Open http://localhost:8080 in your browser
-```
-
----
-
-## License
-
-MIT License — Viral Evolution Group (VEG), Temple University.

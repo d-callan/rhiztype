@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>RhizType | HIV-1 Group M Subtyping & Recombination Classifier (WASM)</title>
+  <title>EGGMAN | Coordinate-Anchored Viral Recombination & Subtyping (WASM)</title>
   <meta name="description" content="Client-side WebAssembly HIV-1 Group M subtyping and mosaic deconvolution engine for aligned and unaligned FASTA sequences.">
   <style>
     :root {
@@ -480,16 +480,16 @@
     <header>
       <div>
         <div class="brand-title">
-          RhizType <span class="brand-badge">Rust + WASM v0.2</span>
+          EGGMAN <span class="brand-badge">Rust + WASM v0.2</span>
         </div>
         <div class="subtitle">
-          Two-Tier HXB2-Anchored HIV-1 Group M Subtyping, Certified CRF Calling, Mosaic Deconvolution &amp; Breakpoint Verification (Aligned or Unaligned FASTA)
+          Exact Genomic Genealogy and Mosaic Ancestry Nomenclature — HXB2-Anchored HIV-1 Subtyping WebApp (see CLI <code>--pack</code> for Influenza A, SARS-CoV-2 &amp; Sarbecoviruses)
         </div>
       </div>
       <div class="nav-tabs">
         <button class="tab-btn active" id="tabBtnScreen" onclick="switchTab('screen')">Sequence Screener</button>
         <button class="tab-btn" id="tabBtnAtlas" onclick="switchTab('atlas')">Reference Compendium (200 Lineages)</button>
-        <a href="https://github.com/veg/rhiztype" target="_blank" class="tab-btn" style="text-decoration:none;">GitHub Repo ↗</a>
+        <a href="https://github.com/veg/eggman" target="_blank" class="tab-btn" style="text-decoration:none;">GitHub Repo ↗</a>
       </div>
     </header>
 
@@ -624,7 +624,7 @@
   </div>
 
   <script type="module">
-    import init, { WasmRhizType } from './pkg/rhiztype_wasm.js';
+    import init, { WasmEggman } from './pkg/eggman_wasm.js';
 
     const TRUNK_COLORS = {
       "A1": "#0072B2",
@@ -1034,7 +1034,7 @@
       const blob = new Blob([header + rows], { type: 'text/csv' });
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
-      a.download = 'rhiztype_results.csv';
+      a.download = 'eggman_results.csv';
       a.click();
     };
 
@@ -1043,7 +1043,7 @@
       const blob = new Blob([JSON.stringify(lastResults, null, 2)], { type: 'application/json' });
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
-      a.download = 'rhiztype_results.json';
+      a.download = 'eggman_results.json';
       a.click();
     };
 
@@ -1058,7 +1058,7 @@
     async function boot() {
       renderLegend();
       await init();
-      wasmEngine = new WasmRhizType();
+      wasmEngine = new WasmEggman();
       compendiumList = JSON.parse(wasmEngine.get_compendium_json());
       document.getElementById('wasmStatus').textContent = '● WASM Ready (200 Lineages)';
       await window.loadPreset('demos');

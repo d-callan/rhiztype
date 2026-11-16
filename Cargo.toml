@@ -1,9 +1,9 @@
 [workspace]
 resolver = "2"
 members = [
-    "crates/rhiztype-core",
-    "crates/rhiztype-cli",
-    "crates/rhiztype-wasm",
+    "crates/eggman-core",
+    "crates/eggman-cli",
+    "crates/eggman-wasm",
 ]
 
 [profile.release]

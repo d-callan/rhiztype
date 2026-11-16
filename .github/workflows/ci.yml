@@ -28,4 +28,4 @@ jobs:
         with:
           targets: wasm32-unknown-unknown
       - uses: Swatinem/rust-cache@v2
-      - run: cargo build -p rhiztype-wasm --target wasm32-unknown-unknown --locked
+      - run: cargo build -p eggman-wasm --target wasm32-unknown-unknown --locked

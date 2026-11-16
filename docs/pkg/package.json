@@ -1,16 +1,16 @@
 {
-  "name": "rhiztype-wasm",
+  "name": "eggman-wasm",
   "type": "module",
-  "description": "WebAssembly bindings for RhizType HIV-1 subtyping and mosaic deconvolution",
+  "description": "WebAssembly bindings for EGGMAN coordinate-anchored viral subtyping and mosaic deconvolution",
   "version": "0.1.0",
   "license": "MIT",
   "files": [
-    "rhiztype_wasm_bg.wasm",
-    "rhiztype_wasm.js",
-    "rhiztype_wasm.d.ts"
+    "eggman_wasm_bg.wasm",
+    "eggman_wasm.js",
+    "eggman_wasm.d.ts"
   ],
-  "main": "rhiztype_wasm.js",
-  "types": "rhiztype_wasm.d.ts",
+  "main": "eggman_wasm.js",
+  "types": "eggman_wasm.d.ts",
   "sideEffects": [
     "./snippets/*"
   ]

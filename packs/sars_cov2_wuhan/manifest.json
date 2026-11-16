@@ -1,0 +1,209 @@
+{
+  "pathogen_name": "SARS-CoV-2",
+  "reference_name": "Wuhan-Hu-1",
+  "ref_full_len": 29903,
+  "coding_start": 266,
+  "coding_end": 29674,
+  "max_query_len": 45000,
+  "min_mapped_coding_nt": 500,
+  "full_span_min_nt": 22000,
+  "full_mapped_min_nt": 20000,
+  "is_segmented": false,
+  "forbid_intra_segment_recomb": false,
+  "use_hiv1_legacy_gene_mapper": false,
+  "hypervariable_masks": [],
+  "landmarks": [
+    {
+      "short_name": "ORF1a",
+      "parent_gene": null,
+      "parent_min_span": 0,
+      "start": 266,
+      "end": 13468
+    },
+    {
+      "short_name": "ORF1b",
+      "parent_gene": null,
+      "parent_min_span": 0,
+      "start": 13468,
+      "end": 21555
+    },
+    {
+      "short_name": "S",
+      "parent_gene": null,
+      "parent_min_span": 0,
+      "start": 21563,
+      "end": 25384
+    },
+    {
+      "short_name": "ORF3a",
+      "parent_gene": null,
+      "parent_min_span": 0,
+      "start": 25393,
+      "end": 26220
+    },
+    {
+      "short_name": "E",
+      "parent_gene": null,
+      "parent_min_span": 0,
+      "start": 26245,
+      "end": 26472
+    },
+    {
+      "short_name": "M",
+      "parent_gene": null,
+      "parent_min_span": 0,
+      "start": 26523,
+      "end": 27191
+    },
+    {
+      "short_name": "ORF6",
+      "parent_gene": null,
+      "parent_min_span": 0,
+      "start": 27202,
+      "end": 27387
+    },
+    {
+      "short_name": "ORF7a",
+      "parent_gene": null,
+      "parent_min_span": 0,
+      "start": 27394,
+      "end": 27759
+    },
+    {
+      "short_name": "ORF8",
+      "parent_gene": null,
+      "parent_min_span": 0,
+      "start": 27894,
+      "end": 28259
+    },
+    {
+      "short_name": "N",
+      "parent_gene": null,
+      "parent_min_span": 0,
+      "start": 28274,
+      "end": 29533
+    },
+    {
+      "short_name": "ORF10",
+      "parent_gene": null,
+      "parent_min_span": 0,
+      "start": 29558,
+      "end": 29674
+    }
+  ],
+  "locus_scopes": [
+    {
+      "name": "S",
+      "min_start": 21500,
+      "min_end": 25300,
+      "max_end": 25500,
+      "min_span_nt": 3000
+    }
+  ],
+  "basal_trunks": [
+    {
+      "name": "B",
+      "is_pure_basal": true,
+      "penalty": 0.0,
+      "active_range": null,
+      "fallback_profile": null,
+      "display_alias": null,
+      "clonal_certified_label": "B"
+    },
+    {
+      "name": "B.1.1.7",
+      "is_pure_basal": true,
+      "penalty": 0.0,
+      "active_range": null,
+      "fallback_profile": null,
+      "display_alias": null,
+      "clonal_certified_label": "B.1.1.7"
+    },
+    {
+      "name": "B.1.617.2",
+      "is_pure_basal": true,
+      "penalty": 0.0,
+      "active_range": null,
+      "fallback_profile": null,
+      "display_alias": null,
+      "clonal_certified_label": "B.1.617.2"
+    },
+    {
+      "name": "BA.1",
+      "is_pure_basal": true,
+      "penalty": 0.0,
+      "active_range": null,
+      "fallback_profile": null,
+      "display_alias": null,
+      "clonal_certified_label": "BA.1"
+    },
+    {
+      "name": "BA.2",
+      "is_pure_basal": true,
+      "penalty": 0.0,
+      "active_range": null,
+      "fallback_profile": null,
+      "display_alias": null,
+      "clonal_certified_label": "BA.2"
+    },
+    {
+      "name": "BA.5",
+      "is_pure_basal": true,
+      "penalty": 0.0,
+      "active_range": null,
+      "fallback_profile": null,
+      "display_alias": null,
+      "clonal_certified_label": "BA.5"
+    },
+    {
+      "name": "BJ.1",
+      "is_pure_basal": true,
+      "penalty": 0.0,
+      "active_range": null,
+      "fallback_profile": null,
+      "display_alias": null,
+      "clonal_certified_label": null
+    },
+    {
+      "name": "BM.1.1.1",
+      "is_pure_basal": true,
+      "penalty": 0.0,
+      "active_range": null,
+      "fallback_profile": null,
+      "display_alias": null,
+      "clonal_certified_label": null
+    },
+    {
+      "name": "JN.1",
+      "is_pure_basal": true,
+      "penalty": 0.0,
+      "active_range": null,
+      "fallback_profile": null,
+      "display_alias": null,
+      "clonal_certified_label": "JN.1"
+    },
+    {
+      "name": "KP.3.3",
+      "is_pure_basal": true,
+      "penalty": 0.0,
+      "active_range": null,
+      "fallback_profile": null,
+      "display_alias": null,
+      "clonal_certified_label": null
+    },
+    {
+      "name": "KS.1.1",
+      "is_pure_basal": true,
+      "penalty": 0.0,
+      "active_range": null,
+      "fallback_profile": null,
+      "display_alias": null,
+      "clonal_certified_label": null
+    }
+  ],
+  "ghost_relabel_rule": null,
+  "align_founder_keys": [],
+  "epi_founder_order": [],
+  "epi_founder_penalty": 0.005,
+  "epi_certified_replacements": []
+}

@@ -1,0 +1,171 @@
+{
+  "pathogen_name": "Influenza A (2.3.4.4b H5N1 / LPAI)",
+  "reference_name": "FluA-2.3.4.4b-8seg",
+  "ref_full_len": 13136,
+  "coding_start": 1,
+  "coding_end": 13136,
+  "max_query_len": 20000,
+  "min_mapped_coding_nt": 400,
+  "full_span_min_nt": 9500,
+  "full_mapped_min_nt": 9000,
+  "is_segmented": true,
+  "forbid_intra_segment_recomb": true,
+  "use_hiv1_legacy_gene_mapper": false,
+  "hypervariable_masks": [],
+  "landmarks": [
+    {
+      "short_name": "PB2",
+      "parent_gene": null,
+      "parent_min_span": 0,
+      "start": 1,
+      "end": 2280
+    },
+    {
+      "short_name": "PB1",
+      "parent_gene": null,
+      "parent_min_span": 0,
+      "start": 2281,
+      "end": 4554
+    },
+    {
+      "short_name": "PA",
+      "parent_gene": null,
+      "parent_min_span": 0,
+      "start": 4555,
+      "end": 6705
+    },
+    {
+      "short_name": "HA",
+      "parent_gene": null,
+      "parent_min_span": 0,
+      "start": 6706,
+      "end": 8409
+    },
+    {
+      "short_name": "NP",
+      "parent_gene": null,
+      "parent_min_span": 0,
+      "start": 8410,
+      "end": 9906
+    },
+    {
+      "short_name": "NA",
+      "parent_gene": null,
+      "parent_min_span": 0,
+      "start": 9907,
+      "end": 11316
+    },
+    {
+      "short_name": "MP",
+      "parent_gene": null,
+      "parent_min_span": 0,
+      "start": 11317,
+      "end": 12298
+    },
+    {
+      "short_name": "NS",
+      "parent_gene": null,
+      "parent_min_span": 0,
+      "start": 12299,
+      "end": 13136
+    }
+  ],
+  "locus_scopes": [],
+  "basal_trunks": [
+    {
+      "name": "EA1",
+      "is_pure_basal": true,
+      "penalty": 0.0,
+      "active_range": null,
+      "fallback_profile": null,
+      "display_alias": "A1",
+      "clonal_certified_label": "A1"
+    },
+    {
+      "name": "EA3",
+      "is_pure_basal": true,
+      "penalty": 0.0,
+      "active_range": null,
+      "fallback_profile": null,
+      "display_alias": "A3",
+      "clonal_certified_label": "A3"
+    },
+    {
+      "name": "EA4",
+      "is_pure_basal": true,
+      "penalty": 0.0,
+      "active_range": null,
+      "fallback_profile": null,
+      "display_alias": "A4",
+      "clonal_certified_label": null
+    },
+    {
+      "name": "EA2",
+      "is_pure_basal": false,
+      "penalty": 0.0,
+      "active_range": null,
+      "fallback_profile": null,
+      "display_alias": null,
+      "clonal_certified_label": null
+    },
+    {
+      "name": "NAm_B313",
+      "is_pure_basal": false,
+      "penalty": 0.0,
+      "active_range": null,
+      "fallback_profile": null,
+      "display_alias": null,
+      "clonal_certified_label": null
+    },
+    {
+      "name": "NAm_D1",
+      "is_pure_basal": false,
+      "penalty": 0.0,
+      "active_range": null,
+      "fallback_profile": null,
+      "display_alias": null,
+      "clonal_certified_label": null
+    },
+    {
+      "name": "NAm_B36",
+      "is_pure_basal": false,
+      "penalty": 0.0,
+      "active_range": null,
+      "fallback_profile": null,
+      "display_alias": null,
+      "clonal_certified_label": null
+    },
+    {
+      "name": "NAm_C2",
+      "is_pure_basal": false,
+      "penalty": 0.0,
+      "active_range": null,
+      "fallback_profile": null,
+      "display_alias": null,
+      "clonal_certified_label": null
+    },
+    {
+      "name": "NAm_B2",
+      "is_pure_basal": false,
+      "penalty": 0.0,
+      "active_range": null,
+      "fallback_profile": null,
+      "display_alias": null,
+      "clonal_certified_label": null
+    },
+    {
+      "name": "NAm_B32",
+      "is_pure_basal": false,
+      "penalty": 0.0,
+      "active_range": null,
+      "fallback_profile": null,
+      "display_alias": null,
+      "clonal_certified_label": null
+    }
+  ],
+  "ghost_relabel_rule": null,
+  "align_founder_keys": [],
+  "epi_founder_order": [],
+  "epi_founder_penalty": 0.005,
+  "epi_certified_replacements": []
+}

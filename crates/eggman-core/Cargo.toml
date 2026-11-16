@@ -1,0 +1,10 @@
+[package]
+name = "eggman-core"
+version = "0.1.0"
+edition = "2021"
+description = "Exact Genomic Genealogy and Mosaic Ancestry Nomenclature (EGGMAN): coordinate-anchored viral recombination, reassortment, and subtyping engine"
+license = "MIT"
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
