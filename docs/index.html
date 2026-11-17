@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>EGGMAN // Coordinate-Anchored Viral Recombination &amp; Reassortment Workbench</title>
-  <meta name="description" content="Client-side WebAssembly workbench for coordinate deconvolution, 8-segment influenza reassortment assembly, and guarded viral nomenclature across HIV-1, Influenza A, SARS-CoV-2, and Sarbecoviruses." />
+  <title>EGGMAN — Is your virus a patchwork?</title>
+  <meta name="description" content="Drop a FASTA file and see which parts of each virus genome came from which strain — HIV-1, Influenza A, SARS-CoV-2, and bat coronaviruses. Runs entirely in your browser." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -177,6 +177,36 @@
     }
     .pack-select:hover { border-color: var(--border-strong); background-color: var(--bg-hover); }
     .pack-select.override { border-color: var(--orange); color: var(--orange); background-color: var(--orange-soft); }
+
+    /* Read-only pack status chip (replaces live <select>; changing re-runs via modal) */
+    .pack-chip {
+      appearance: none;
+      -webkit-appearance: none;
+      background: var(--bg-subtle);
+      border: 1px solid var(--border);
+      color: var(--ink);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 700;
+      padding: 5px 10px;
+      border-radius: 7px;
+      cursor: default;
+      white-space: nowrap;
+      flex-shrink: 0;
+      max-width: 280px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .pack-chip.manual { border-color: var(--orange); color: var(--orange); background-color: var(--orange-soft); }
+    .pack-chip .chip-hint { opacity: 0.55; font-weight: 500; }
+
+    .step-arrow {
+      color: var(--ink-muted);
+      font-size: 11px;
+      font-weight: 600;
+      flex-shrink: 0;
+      user-select: none;
+    }
 
     .stage-steps {
       display: flex;
@@ -515,8 +545,18 @@
     .landing-hero {
       display: grid;
       grid-template-columns: 1.15fr 0.85fr;
-      gap: 24px;
+      gap: 32px;
       align-items: stretch;
+      min-height: 420px;
+    }
+    .hero-tour-row {
+      grid-column: 1 / -1;
+      border-top: 1px solid var(--border);
+      padding-top: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
     }
 
     @media (max-width: 960px) {
@@ -586,6 +626,21 @@
       border-color: var(--ink);
     }
 
+    /* Example datasets modal: name rows with expandy triangles */
+    .ex-row { border: 1px solid var(--border); border-radius: 8px; margin-bottom: 6px; background: var(--bg-card); }
+    .ex-row summary { display: flex; align-items: center; gap: 8px; padding: 10px 12px; cursor: pointer; list-style: none; }
+    .ex-row summary::-webkit-details-marker { display: none; }
+    .ex-row summary::before { content: '▸'; color: var(--ink-muted); transition: transform 0.12s; flex-shrink: 0; }
+    .ex-row[open] summary::before { transform: rotate(90deg); }
+    .ex-row-title { font-weight: 600; font-size: 13px; flex: 1; }
+    .ex-row-label { font-size: 11px; color: var(--ink-muted); white-space: nowrap; }
+    .ex-row-body { padding: 0 12px 12px; }
+    .ex-stats { font-size: 11px; color: var(--ink-secondary); margin: 6px 0 10px; }
+
+    /* Staged-input indicator + armed run-mode buttons */
+    .staged-box { margin-top: 10px; padding: 9px 12px; border-radius: 8px; border: 1px solid var(--orange); background: var(--orange-soft); font-size: 12px; line-height: 1.5; }
+    .mode-opt.armed { border-color: var(--orange); box-shadow: 0 0 0 1px var(--orange-soft); }
+
     .mode-switch-options {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -633,6 +688,54 @@
       gap: 8px;
       justify-content: center;
       margin-top: 6px;
+    }
+
+    /* Landing pipeline diagram: state as structure, not prose */
+    .pipe-strip {
+      display: flex;
+      align-items: stretch;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin: 12px 0 4px;
+    }
+    .pipe-node {
+      flex: 1 1 150px;
+      min-width: 140px;
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      background: var(--bg-subtle);
+      padding: 10px 12px;
+    }
+    .pipe-node-label {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 12.5px;
+      font-weight: 700;
+      color: var(--ink);
+    }
+    .pipe-node-num {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--ink);
+      color: #FFFFFF;
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+    .pipe-node-desc { font-size: 11.5px; color: var(--ink-secondary); margin-top: 4px; line-height: 1.4; }
+    .pipe-arrow {
+      align-self: center;
+      color: var(--ink-muted);
+      font-size: 15px;
+      font-weight: 700;
+      flex-shrink: 0;
+      user-select: none;
     }
 
     /* Walkthrough Landing Card */
@@ -1050,45 +1153,43 @@
   <!-- =================================================================== -->
   <header class="topbar">
     <div class="brand-group">
-      <div class="brand" id="brandHome" title="Return to EGGMAN Start Launchpad">
+      <div class="brand" id="brandHome" title="Back to start">
         <span class="status-dot" id="statusDot"></span>
         <span>EGGMAN</span>
       </div>
-      <div class="brand-status" id="brandStatus">Booting WASM…</div>
-      <select id="topbarPackSelect" class="pack-select" title="Active pathogen reference pack (Auto-Detect or manual override)">
-        <option value="auto">✨ Auto Pack</option>
-        <option value="hiv1">HIV-1 Group M</option>
-        <option value="iav">Influenza A 8-Seg</option>
-        <option value="sc2">SARS-CoV-2</option>
-        <option value="sarbeco">Sarbecovirus</option>
-      </select>
+      <div class="brand-status" id="brandStatus">Loading…</div>
+      <div class="pack-chip" id="packChip" title="The reference panel in use — change it on the Start page or the Check stage">🧬 Virus: auto</div>
     </div>
 
     <nav class="stage-steps" aria-label="Pipeline Stages">
       <button class="stage-step active" id="navLanding" data-view="landing">
         <span class="step-num">⌂</span><span>Start</span>
       </button>
-      <button class="stage-step" id="stepBtn0" data-view="stage0" disabled>
-        <span class="step-num">0</span><span>QA</span><span class="step-state" id="stepBadge0">—</span>
+      <span class="step-arrow">→</span>
+      <button class="stage-step" id="stepBtn0" data-view="stage0" disabled
+        title="Check — is the data usable? We guess the virus and map every sequence onto one reference map.">
+        <span class="step-num">1</span><span>Check</span><span class="step-state" id="stepBadge0">—</span>
       </button>
-      <button class="stage-step" id="stepBtn1" data-view="stage1" disabled>
-        <span class="step-num">1</span><span>Atlas</span><span class="step-state" id="stepBadge1">—</span>
+      <span class="step-arrow">→</span>
+      <button class="stage-step" id="stepBtn1" data-view="stage1" disabled
+        title="Label — each piece of each genome gets a strain label, or an honest 'unknown'.">
+        <span class="step-num">2</span><span>Label</span><span class="step-state" id="stepBadge1">—</span>
       </button>
-      <button class="stage-step" id="stepBtn2" data-view="stage2" disabled>
-        <span class="step-num">2</span><span>Breakpoints</span><span class="step-state" id="stepBadge2">—</span>
+      <span class="step-arrow">→</span>
+      <button class="stage-step" id="stepBtn2" data-view="stage2" disabled
+        title="Joins — every spot where the label switches gets a statistical check.">
+        <span class="step-num">3</span><span>Joins</span><span class="step-state" id="stepBadge2">—</span>
       </button>
-      <button class="stage-step" id="stepBtn3" data-view="stage3" disabled>
-        <span class="step-num">3</span><span>Dossier</span><span class="step-state" id="stepBadge3">—</span>
+      <span class="step-arrow">→</span>
+      <button class="stage-step" id="stepBtn3" data-view="stage3" disabled
+        title="Keep — download the report, the table, or the rebuilt genomes.">
+        <span class="step-num">4</span><span>Keep</span><span class="step-state" id="stepBadge3">—</span>
       </button>
     </nav>
 
     <div class="topbar-actions">
       <input type="file" id="globalFileInput" multiple accept=".fa,.fasta,.fna,.fas,.txt" class="hidden" />
-      <button class="top-btn" id="btnTopUpload" title="Upload one or multiple FASTA files (e.g. 8 separate Influenza segments)">Upload</button>
-      <button class="top-btn" id="btnTopPaste" title="Paste FASTA sequences from clipboard">Paste</button>
-      <button class="top-btn" id="btnTopStream" title="Stream FASTA records live from NCBI GenBank or CORS URL">🌐 Fetch</button>
-      <button class="top-btn accent" id="btnTopTour" title="Start interactive guided walkthrough">🎓 Tour</button>
-      <button class="top-btn" id="btnTopGuide" title="Open documentation & algorithm guide">? Guide</button>
+      <button class="top-btn" id="btnTopGuide" title="How it works, in more detail">? Guide</button>
     </div>
   </header>
 
@@ -1111,93 +1212,57 @@
     <section id="landingView">
       <div class="card landing-hero">
         <div>
-          <span class="hero-kicker">RUST + WEBASSEMBLY MULTI-PATHOGEN WORKBENCH (v0.2)</span>
-          <h1 class="hero-headline">Coordinate-anchored viral recombination, 8-segment reassortment, and guarded clade nomenclature.</h1>
+          <span class="hero-kicker">EGGMAN · RUNS IN YOUR BROWSER, NOTHING IS UPLOADED</span>
+          <h1 class="hero-headline">Is your virus a patchwork of different strains?</h1>
           <p class="hero-copy">
-            Project aligned or unaligned genomes—and unconcatenated Influenza A RNA segments—onto physical reference coordinates locally inside your browser. Zero server uploads.
+            Drop a FASTA file. EGGMAN shows which parts of each genome came from which strain, and exactly where they join.
           </p>
 
-          <div class="control-group-label">1. Target Pathogen Pack</div>
+          <div class="control-group-label">1 · Which virus is it? <span style="font-weight:400;text-transform:none;letter-spacing:0;">(auto-detect usually gets it)</span></div>
           <div class="segmented-pills" id="landingPackPills">
-            <button class="seg-pill active" data-pack="auto">✨ Auto-Detect Pathogen</button>
-            <button class="seg-pill" data-pack="hiv1">HIV-1 Group M (HXB2)</button>
-            <button class="seg-pill" data-pack="iav">Influenza A (8-Seg H5N1)</button>
-            <button class="seg-pill" data-pack="sc2">SARS-CoV-2 (Wuhan-Hu-1)</button>
-            <button class="seg-pill" data-pack="sarbeco">Sarbecovirus (Bat / Wildlife)</button>
+            <button class="seg-pill active" data-pack="auto">✨ Auto-detect</button>
+            <button class="seg-pill" data-pack="hiv1">HIV-1</button>
+            <button class="seg-pill" data-pack="iav">Influenza A</button>
+            <button class="seg-pill" data-pack="sc2">SARS-CoV-2</button>
+            <button class="seg-pill" data-pack="sarbeco">Other bat sarbecoviruses</button>
           </div>
 
-          <div class="control-group-label">2. Launch Mode</div>
+          <div class="control-group-label">2 · Give it data, then pick how to run</div>
           <div class="mode-switch-options">
             <button class="mode-opt" id="modeOptStep" data-mode="step">
-              <div class="mode-opt-title">Step-by-Step Workbench</div>
-              <div class="mode-opt-desc">Inspect Stage 0 pathogen detection &amp; segment stitching before atlas view</div>
+              <div class="mode-opt-title">▶ Check each step</div>
+              <div class="mode-opt-desc">Pause after the data check so you can look first</div>
             </button>
             <button class="mode-opt active" id="modeOptAuto" data-mode="auto">
-              <div class="mode-opt-title">⚡ Full Auto Pipeline</div>
-              <div class="mode-opt-desc">Run QA, segment stitching &amp; deconvolution directly into the Mosaic Atlas</div>
+              <div class="mode-opt-title">⚡ Just run it</div>
+              <div class="mode-opt-desc">Straight to the results — you can still step back</div>
             </button>
           </div>
         </div>
 
         <div class="dropzone-box" id="landingDropzone">
           <div style="font-size:26px;">🧬</div>
-          <div style="font-weight:700;font-size:15px;">Drop Viral FASTA File(s) Here</div>
+          <div style="font-weight:700;font-size:15px;">Drop your FASTA file(s) here</div>
           <div style="font-size:12px;color:var(--ink-secondary);max-width:340px;">
-            Auto-detects <strong>HIV-1</strong>, <strong>SARS-CoV-2</strong>, <strong>Sarbecoviruses</strong>, or <strong>Influenza A</strong>. Drop <strong>8 individual segment FASTA files</strong> together or a single multi-FASTA to assemble isolates automatically.
+            One file or many — flu can even be <strong>8 separate segment files</strong>. Aligned or not.
           </div>
           <div class="dropzone-actions">
-            <button class="btn primary" id="btnChooseFiles">Choose File(s)…</button>
-            <button class="btn" id="btnOpenPaste">Paste FASTA</button>
-            <button class="btn" id="btnOpenStream">🌐 Stream NCBI / URL</button>
+            <button class="btn primary" id="btnChooseFiles">Choose file(s)…</button>
+            <button class="btn" id="btnOpenPaste">Paste</button>
+            <button class="btn" id="btnOpenStream">🌐 Fetch from GenBank</button>
+            <button class="btn" id="btnOpenExamples">📚 Example data</button>
           </div>
+          <div class="staged-box hidden" id="stagedBox"></div>
+        </div>
+
+        <div class="hero-tour-row">
+          <span style="font-size:12px;font-weight:700;color:var(--ink-secondary);">Watch it work:</span>
+          <button class="btn dark sm" onclick="startGuidedTour('flu_stitch')">▶ Flu — 8 pieces into 2 viruses</button>
+          <button class="btn dark sm" onclick="startGuidedTour('sc2_xec')">▶ COVID — a mislabeled genome</button>
+          <button class="btn dark sm" onclick="startGuidedTour('hiv_discovery')">▶ HIV-1 — an ancestral join</button>
         </div>
       </div>
 
-      <!-- INTERACTIVE WALKTHROUGH CARD -->
-      <div class="card">
-        <div class="verdict-header" style="margin-bottom:6px;">
-          <div>
-            <div class="stage-title">Interactive Pipeline &amp; Guided Walkthroughs</div>
-            <div class="stage-subtitle">Decompose mosaic evolution into four inspectable browser stages or launch a curated guided tour with live forensic probes.</div>
-          </div>
-        </div>
-        <div class="walkthrough-steps-row">
-          <div class="wt-step-tile">
-            <div class="wt-step-num">STAGE 0</div>
-            <div class="wt-step-title">QA, Auto-Detection &amp; Segment Assembly</div>
-            <div class="wt-step-desc">15-mer family detection + strain/disjoint grouping of 8 Flu RNA segments.</div>
-          </div>
-          <div class="wt-step-tile">
-            <div class="wt-step-num">STAGE 1</div>
-            <div class="wt-step-title">Coordinate Barcode Atlas</div>
-            <div class="wt-step-desc">Dual Epidemiological vs. Basal paths paired with 4-gate guarded clade calls.</div>
-          </div>
-          <div class="wt-step-tile">
-            <div class="wt-step-num">STAGE 2</div>
-            <div class="wt-step-title">Breakpoint Forensics</div>
-            <div class="wt-step-desc">Genome-wide horizon track &amp; per-junction 2&times;2 Fisher SNP audits.</div>
-          </div>
-          <div class="wt-step-tile">
-            <div class="wt-step-num">STAGE 3</div>
-            <div class="wt-step-title">Compendium &amp; Dossier</div>
-            <div class="wt-step-desc">Pack reference explorer plus CSV, JSON, SVG, FASTA &amp; HTML report exports.</div>
-          </div>
-        </div>
-        <div class="tour-launch-row">
-          <button class="btn dark sm" onclick="startGuidedTour('flu_stitch')">▶ Tour 1: Raw 8-Segment H5N1 Assembly &amp; Cattle B3.13 Reassortment</button>
-          <button class="btn dark sm" onclick="startGuidedTour('sc2_xec')">▶ Tour 2: SARS-CoV-2 Recombinants, Misarchived BA.2 &amp; 4-SNP XEC</button>
-          <button class="btn dark sm" onclick="startGuidedTour('hiv_discovery')">▶ Tour 3: HIV-1 Ancestral Subtype G0 Reference Scrubbing</button>
-        </div>
-      </div>
-
-      <!-- CURATED BIOLOGICAL SHOWCASE GRID -->
-      <div style="margin: 18px 0 10px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
-        <div>
-          <div class="stage-title">Curated Multi-Pathogen Empirical Cohorts</div>
-          <div class="stage-subtitle">Real surveillance specimens from SRA, GenBank, and LANL computed natively by the 4 embedded Rust/WASM packs.</div>
-        </div>
-      </div>
-      <div class="examples-grid" id="examplesGrid"></div>
     </section>
 
     <!-- ================================================================= -->
@@ -1211,11 +1276,11 @@
               <span class="badge orange" id="s0PackBadge">PACK</span>
               <span class="badge green" id="s0ConfBadge">AUTO-DETECTED</span>
             </div>
-            <h2 class="stage-title" id="s0Headline">Dataset QA &amp; Coordinate Mapping</h2>
+            <h2 class="stage-title" id="s0Headline">Is the data OK?</h2>
             <p class="stage-subtitle" id="s0Subheadline"></p>
           </div>
           <div>
-            <button class="btn primary" onclick="goView('stage1')">Inspect Mosaic Atlas →</button>
+            <button class="btn primary" onclick="goView('stage1')">Next: the labels →</button>
           </div>
         </div>
         <div class="kpi-grid" id="s0KpiGrid"></div>
@@ -1225,10 +1290,10 @@
       <div class="card">
         <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
           <div>
-            <div style="font-size:13.5px;font-weight:700;">Automatic 15-Mer Pathogen Classification</div>
+            <div style="font-size:13.5px;font-weight:700;">How we picked the virus</div>
             <div style="font-size:12px;color:var(--ink-secondary);" id="s0DetectReason"></div>
           </div>
-          <span class="badge" id="s0DetectHint">Click any pathogen card below to override pack</span>
+          <span class="badge" id="s0DetectHint">Looks wrong? Click the right virus below</span>
         </div>
         <div class="detect-bars" id="s0DetectBars"></div>
       </div>
@@ -1237,8 +1302,8 @@
       <div class="card hidden" id="segAssemblyCard" style="border-left: 4px solid var(--blue);">
         <div class="verdict-header" style="margin-bottom:10px;">
           <div>
-            <span class="badge blue" style="margin-bottom:4px;">8-SEGMENT INFLUENZA ASSEMBLY</span>
-            <div style="font-size:15px;font-weight:700;" id="segAsmTitle">Segmented RNA Assembly Matrix</div>
+            <span class="badge blue" style="margin-bottom:4px;">8-SEGMENT INFLUENZA</span>
+            <div style="font-size:15px;font-weight:700;" id="segAsmTitle">8-piece assembly</div>
             <div style="font-size:12.5px;color:var(--ink-secondary);" id="segAsmSubtitle"></div>
           </div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
@@ -1246,7 +1311,7 @@
           </div>
         </div>
 
-        <div class="control-group-label">Unconcatenated Segment Grouping Strategy</div>
+        <div class="control-group-label">How should the pieces be grouped?</div>
         <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:8px;">
           <div class="segmented-pills" id="segModePills" style="margin-bottom:0;">
             <button class="seg-pill active" data-segmode="auto">✨ Auto-Group by Strain / Disjoint Segments</button>
@@ -1283,45 +1348,45 @@
       <div class="card">
         <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
           <div>
-            <div style="font-size:13.5px;font-weight:700;">Deconvolution &amp; Guard Parameters</div>
-            <div style="font-size:12px;color:var(--ink-secondary);">Adjusting parameters automatically flushes and recomputes Stages 1–3 on the active pathogen grid.</div>
+            <div style="font-size:13.5px;font-weight:700;">Fine-tuning <span style="font-weight:400;color:var(--ink-secondary);font-size:12px;">(optional)</span></div>
+            <div style="font-size:12px;color:var(--ink-secondary);">How hard to look for extra joins. Changing these re-runs steps 2–4.</div>
           </div>
           <div style="display:flex;gap:6px;flex-wrap:wrap;">
-            <button class="btn sm" onclick="applyParamPreset('default')">Default (γ=7.0, ≥5 SNPs)</button>
-            <button class="btn sm" onclick="applyParamPreset('cov_low')">CoV 4-SNP Mode (γ=3.5, ≥3 SNPs, p&lt;0.01)</button>
-            <button class="btn sm" onclick="applyParamPreset('strict')">Compendium Strict (γ=10.5)</button>
+            <button class="btn sm" onclick="applyParamPreset('default')">Default</button>
+            <button class="btn sm" onclick="applyParamPreset('cov_low')">Catch small joins (4-SNP)</button>
+            <button class="btn sm" onclick="applyParamPreset('strict')">Extra strict</button>
           </div>
         </div>
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;align-items:end;">
           <div>
-            <label class="control-group-label" style="display:block;">Switch Penalty γ (0 = pack default 7.0 nats)</label>
+            <label class="control-group-label" style="display:block;">How much proof a join needs (γ; 0 = default)</label>
             <input type="number" class="input-field" style="width:100%;" id="paramGamma" value="0" min="0" max="40" step="0.5" />
           </div>
           <div>
-            <label class="control-group-label" style="display:block;">Min Span nt (0=Auto)</label>
+            <label class="control-group-label" style="display:block;">Smallest piece allowed (nt; 0 = auto)</label>
             <input type="number" class="input-field" style="width:100%;" id="paramMinSpan" value="0" min="0" max="5000" step="10" />
           </div>
           <div>
-            <label class="control-group-label" style="display:block;">Min Informative SNPs</label>
+            <label class="control-group-label" style="display:block;">Min SNPs proving a switch</label>
             <input type="number" class="input-field" style="width:100%;" id="paramMinSnps" value="5" min="2" max="25" step="1" />
           </div>
           <div>
-            <label class="control-group-label" style="display:block;">Fisher p-Cutoff</label>
+            <label class="control-group-label" style="display:block;">How strict the proof is</label>
             <select class="input-field" style="width:100%;" id="paramPThresh">
-              <option value="0.01">1e-2 (CoV 4-SNP Sensitive)</option>
-              <option value="0.001">1e-3 (Audit)</option>
-              <option value="0.0001" selected>1e-4 (Standard Discovery)</option>
-              <option value="0.00001">1e-5 (Strict)</option>
+              <option value="0.01">Loose (p&lt;0.01)</option>
+              <option value="0.001">Standard (p&lt;0.001)</option>
+              <option value="0.0001" selected>Strict (p&lt;0.0001)</option>
+              <option value="0.00001">Very strict (p&lt;0.00001)</option>
             </select>
           </div>
           <div>
             <label style="display:flex;align-items:center;gap:7px;font-size:12px;font-weight:600;padding:7px 2px;cursor:pointer;">
               <input type="checkbox" id="paramMaskLoops" checked />
-              Mask Hypervariable Loops
+              Skip hypervariable regions
             </label>
           </div>
           <div>
-            <button class="btn primary" style="width:100%;" onclick="reapplyParams()">Apply &amp; Re-Run</button>
+            <button class="btn primary" style="width:100%;" onclick="reapplyParams()">Re-run with these settings</button>
           </div>
         </div>
       </div>
@@ -1330,11 +1395,11 @@
       <div class="card">
         <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
           <div>
-            <div style="font-size:14px;font-weight:700;">Isolate Coordinate Projection QA</div>
-            <div style="font-size:12px;color:var(--ink-secondary);">Click any row to open the Stage 0 Isolate QA Inspector Drawer.</div>
+            <div style="font-size:14px;font-weight:700;">Sequence check</div>
+            <div style="font-size:12px;color:var(--ink-secondary);">Click a row for details.</div>
           </div>
           <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-            <input type="text" class="input-field search" id="s0QaSearch" placeholder="Filter isolate, clade, alignment…" />
+            <input type="text" class="input-field search" id="s0QaSearch" placeholder="Filter sequences…" />
             <span class="badge" id="s0QaCount">0 isolates</span>
           </div>
         </div>
@@ -1342,12 +1407,12 @@
           <table>
             <thead>
               <tr>
-                <th>Isolate ID</th>
-                <th>Locus Scope</th>
-                <th>Mapped Span</th>
+                <th>Sequence</th>
+                <th>Coverage</th>
+                <th>Mapped span</th>
                 <th>Mapped nt</th>
-                <th>Alignment Mode</th>
-                <th>Preliminary State</th>
+                <th>How it aligned</th>
+                <th>First guess</th>
               </tr>
             </thead>
             <tbody id="s0QaTableBody"></tbody>
@@ -1365,11 +1430,11 @@
         <div class="verdict-header">
           <div>
             <span class="badge green" id="s1PackBadge">MOSAIC ATLAS</span>
-            <h2 class="stage-title" id="s1Headline" style="margin-top:4px;">Coordinate-Anchored Classification &amp; Structural Barcodes</h2>
+            <h2 class="stage-title" id="s1Headline" style="margin-top:4px;">Which strain is each piece?</h2>
             <p class="stage-subtitle" id="s1Subheadline"></p>
           </div>
           <div>
-            <button class="btn primary" onclick="goView('stage2')">Inspect Breakpoints →</button>
+            <button class="btn primary" onclick="goView('stage2')">Next: the joins →</button>
           </div>
         </div>
         <div class="kpi-grid" id="s1KpiGrid"></div>
@@ -1377,21 +1442,21 @@
 
       <div class="card-toolbar">
         <div class="toolbar-group">
-          <input type="text" class="input-field search" id="s1Search" placeholder="Filter isolate, clade, formula (e.g. B3.13, URF, XBB)…" />
+          <input type="text" class="input-field search" id="s1Search" placeholder="Filter sequences or labels…" />
           <button class="seg-pill active" data-s1cat="all" onclick="setS1Filter('all')">All</button>
-          <button class="seg-pill" data-s1cat="clonal" onclick="setS1Filter('clonal')">Clonal Trunks</button>
-          <button class="seg-pill" data-s1cat="certified" onclick="setS1Filter('certified')">Certified Mosaic / Reassortant</button>
-          <button class="seg-pill" data-s1cat="urf" onclick="setS1Filter('urf')">Novel URF</button>
+          <button class="seg-pill" data-s1cat="clonal" onclick="setS1Filter('clonal')">One strain</button>
+          <button class="seg-pill" data-s1cat="certified" onclick="setS1Filter('certified')">Mixed strains</button>
+          <button class="seg-pill" data-s1cat="urf" onclick="setS1Filter('urf')">Unknown</button>
         </div>
         <div class="toolbar-group">
           <div class="segmented-pills" id="s1ViewModePills" style="margin-bottom:0;">
-            <button class="seg-pill active" data-s1view="groups" onclick="setS1ViewMode('groups')">📊 Cohort Groups</button>
-            <button class="seg-pill" data-s1view="table" onclick="setS1ViewMode('table')">📋 Compact Table</button>
-            <button class="seg-pill" data-s1view="cards" onclick="setS1ViewMode('cards')">🧬 Detailed Cards</button>
+            <button class="seg-pill active" data-s1view="groups" onclick="setS1ViewMode('groups')">📊 Groups</button>
+            <button class="seg-pill" data-s1view="table" onclick="setS1ViewMode('table')">📋 Table</button>
+            <button class="seg-pill" data-s1view="cards" onclick="setS1ViewMode('cards')">🧬 Cards</button>
           </div>
-          <span class="control-group-label" style="margin:0 0 0 6px;">Track:</span>
-          <button class="seg-pill active" id="trackModeEpi" onclick="setTrackMode('epi')">Epi + Basal</button>
-          <button class="seg-pill" id="trackModeBasal" onclick="setTrackMode('basal')">Basal</button>
+          <span class="control-group-label" style="margin:0 0 0 6px;">Labels:</span>
+          <button class="seg-pill active" id="trackModeEpi" onclick="setTrackMode('epi')">Clinical + deep ancestry</button>
+          <button class="seg-pill" id="trackModeBasal" onclick="setTrackMode('basal')">Deep ancestry only</button>
         </div>
       </div>
 
@@ -1403,8 +1468,8 @@
       <div class="card" id="s1CohortRollupCard">
         <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
           <div>
-            <div style="font-size:14px;font-weight:700;">Cohort Lineage &amp; Mosaic Architecture Summary</div>
-            <div style="font-size:12px;color:var(--ink-secondary);">Aggregated by called clade and coordinate formula. Click any architecture row to drill down into its isolates.</div>
+            <div style="font-size:14px;font-weight:700;">What we found, grouped</div>
+            <div style="font-size:12px;color:var(--ink-secondary);">Sequences sharing the same mix. Click a row to see them.</div>
           </div>
           <span class="badge" id="s1GroupCount">0 architectures</span>
         </div>
@@ -1414,11 +1479,11 @@
               <tr>
                 <th>Count</th>
                 <th>Share</th>
-                <th>Lineage / Status</th>
-                <th>Coordinate Formula</th>
-                <th>Mean Mapped</th>
-                <th>Mean BPs</th>
-                <th>Representative Architecture</th>
+                <th>Label</th>
+                <th>Mix formula</th>
+                <th>Avg mapped</th>
+                <th>Avg joins</th>
+                <th>Typical map</th>
               </tr>
             </thead>
             <tbody id="s1GroupBody"></tbody>
@@ -1431,8 +1496,8 @@
       <div class="card hidden" id="s1CompactTableCard">
         <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
           <div>
-            <div style="font-size:14px;font-weight:700;">Paginated Isolate Classification Table</div>
-            <div style="font-size:12px;color:var(--ink-secondary);">Click any isolate row to inspect guarded clade checks and segment tables in the forensic drawer.</div>
+            <div style="font-size:14px;font-weight:700;">Every sequence</div>
+            <div style="font-size:12px;color:var(--ink-secondary);">Click a row for the full detail.</div>
           </div>
           <span class="badge" id="s1IsoCountBadge">0 isolates</span>
         </div>
@@ -1440,12 +1505,12 @@
           <table>
             <thead>
               <tr>
-                <th>Isolate ID</th>
-                <th>Scope</th>
-                <th>Called Clade</th>
-                <th>Formula</th>
-                <th>Coordinate Barcode</th>
-                <th>Support / BPs</th>
+                <th>Sequence</th>
+                <th>Coverage</th>
+                <th>Label</th>
+                <th>Mix</th>
+                <th>Map</th>
+                <th>Confidence / joins</th>
               </tr>
             </thead>
             <tbody id="s1CompactBody"></tbody>
@@ -1466,11 +1531,11 @@
         <div class="verdict-header">
           <div>
             <span class="badge blue" id="s2PackBadge">FISHER EXACT AUDIT</span>
-            <h2 class="stage-title" id="s2Headline" style="margin-top:4px;">Recombination Breakpoint &amp; Segment-Exchange Forensics</h2>
+            <h2 class="stage-title" id="s2Headline" style="margin-top:4px;">Where are the joins?</h2>
             <p class="stage-subtitle" id="s2Subheadline"></p>
           </div>
           <div>
-            <button class="btn primary" onclick="goView('stage3')">Open Dossier &amp; Exports →</button>
+            <button class="btn primary" onclick="goView('stage3')">Next: keep the results →</button>
           </div>
         </div>
         <div class="kpi-grid" id="s2KpiGrid"></div>
@@ -1479,8 +1544,8 @@
       <div class="card">
         <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:8px;">
           <div>
-            <div style="font-size:14px;font-weight:700;">Genome-Wide Breakpoint Density &amp; Mosaic Architecture Horizon</div>
-            <div style="font-size:12px;color:var(--ink-secondary);" id="s2HorizonSubtitle">60-bin density histogram paired with mosaic isolate tracks. Click any junction marker to inspect the 2&times;2 Fisher contingency table.</div>
+            <div style="font-size:14px;font-weight:700;">Where the joins cluster</div>
+            <div style="font-size:12px;color:var(--ink-secondary);" id="s2HorizonSubtitle">Hot spots where sequences switch strain. Click a dot for the statistical check.</div>
           </div>
           <span class="badge mono" id="s2GridSpanBadge">—</span>
         </div>
@@ -1490,16 +1555,16 @@
       <div class="card">
         <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:10px;">
           <div>
-            <div style="font-size:14px;font-weight:700;">Verified Crossover &amp; Segment Junction Ledger</div>
-            <div style="font-size:12px;color:var(--ink-secondary);">Click any row to open the Stage 2 Fisher Audit Drawer.</div>
+            <div style="font-size:14px;font-weight:700;">Every join, checked</div>
+            <div style="font-size:12px;color:var(--ink-secondary);">Click a row for the statistical proof.</div>
           </div>
           <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-            <input type="text" class="input-field search" id="s2Search" placeholder="Filter isolate, donor transition, coord…" />
+            <input type="text" class="input-field search" id="s2Search" placeholder="Filter joins…" />
             <div class="segmented-pills" id="s2ViewModePills" style="margin-bottom:0;">
-              <button class="seg-pill active" data-s2view="hotspots" onclick="setS2ViewMode('hotspots')">🔥 Grouped Hotspots</button>
-              <button class="seg-pill" data-s2view="all" onclick="setS2ViewMode('all')">📋 All Junctions</button>
+              <button class="seg-pill active" data-s2view="hotspots" onclick="setS2ViewMode('hotspots')">🔥 Hot spots</button>
+              <button class="seg-pill" data-s2view="all" onclick="setS2ViewMode('all')">📋 All joins</button>
             </div>
-            <span class="badge" id="s2BpCount">0 junctions</span>
+            <span class="badge" id="s2BpCount">0 joins</span>
           </div>
         </div>
         <div class="table-scroll">
@@ -1519,30 +1584,30 @@
       <div class="card verdict-card" style="border-left-color: var(--green);">
         <div class="verdict-header">
           <div>
-            <span class="badge green">DOSSIER &amp; REFERENCE COMPENDIUM</span>
-            <h2 class="stage-title" style="margin-top:4px;" id="s3Headline">Reproducible Classification Dossier &amp; Pack Explorer</h2>
-            <p class="stage-subtitle">Export machine-readable JSON ledgers, tabular CSV classifications, assembled FASTA scaffolds, vector SVGs, or a standalone HTML report.</p>
+            <span class="badge green">YOUR RESULTS</span>
+            <h2 class="stage-title" style="margin-top:4px;" id="s3Headline">Take the results home</h2>
+            <p class="stage-subtitle">Everything below was computed in your browser. Download whatever you need.</p>
           </div>
         </div>
         <div style="display:flex;flex-wrap:wrap;gap:8px;">
-          <button class="btn primary" onclick="downloadHTMLDossier()">↓ Download Standalone HTML Dossier</button>
-          <button class="btn" onclick="exportCSV()">Export CSV Table</button>
-          <button class="btn" onclick="exportJSON()">Export Full Audit JSON</button>
-          <button class="btn" onclick="downloadStitchedFasta()">Export Processed FASTA</button>
-          <button class="btn" onclick="exportAllBarcodesSVG()">Export SVG Barcode Sheet</button>
+          <button class="btn primary" onclick="downloadHTMLDossier()">↓ Full report (HTML)</button>
+          <button class="btn" onclick="exportCSV()">Spreadsheet (CSV)</button>
+          <button class="btn" onclick="exportJSON()">Raw data (JSON)</button>
+          <button class="btn" onclick="downloadStitchedFasta()">Processed FASTA</button>
+          <button class="btn" onclick="exportAllBarcodesSVG()">Maps (SVG)</button>
         </div>
       </div>
 
       <div class="card">
-        <div style="font-size:14px;font-weight:700;margin-bottom:8px;">Embedded Executive Summary</div>
+        <div style="font-size:14px;font-weight:700;margin-bottom:8px;">Summary</div>
         <div id="s3DossierPreview" style="font-size:13px;color:var(--ink-secondary);"></div>
       </div>
 
       <div class="card">
         <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:10px;">
           <div>
-            <div style="font-size:14px;font-weight:700;" id="s3CompendiumTitle">Active Pathogen Reference Compendium</div>
-            <div style="font-size:12px;color:var(--ink-secondary);">Verified coordinate barcodes embedded inside the active WASM pathogen pack.</div>
+            <div style="font-size:14px;font-weight:700;" id="s3CompendiumTitle">The reference panel we compared against</div>
+            <div style="font-size:12px;color:var(--ink-secondary);">Every known strain in the pack — what your sequences were matched to.</div>
           </div>
           <input type="text" class="input-field search" id="atlasSearch" placeholder="Filter lineage, formula, backbone…" onkeyup="renderAtlasTable()" />
         </div>
@@ -1551,11 +1616,11 @@
             <thead>
               <tr>
                 <th>Lineage</th>
-                <th>Coordinate Formula</th>
-                <th>Backbone</th>
-                <th>Scope / t_MRCA</th>
-                <th>Genome Architecture</th>
-                <th>Raw Coordinates</th>
+                <th>Mix formula</th>
+                <th>Main strain</th>
+                <th>Scope / age</th>
+                <th>Genome map</th>
+                <th>Positions</th>
               </tr>
             </thead>
             <tbody id="atlasTableBody"></tbody>
@@ -1569,9 +1634,9 @@
   <!-- STICKY CONTEXT-AWARE BOTTOM BAR -->
   <footer class="bottom-bar hidden" id="bottomBar">
     <div class="bottom-left">
-      <button class="btn sm" onclick="exportCSV()">Export CSV</button>
-      <button class="btn sm" onclick="exportJSON()">Export JSON</button>
-      <button class="btn sm hidden" id="btnBottomFasta" onclick="downloadStitchedFasta()">↓ Stitched 8-Seg FASTA</button>
+      <button class="btn sm" onclick="exportCSV()">CSV</button>
+      <button class="btn sm" onclick="exportJSON()">JSON</button>
+      <button class="btn sm hidden" id="btnBottomFasta" onclick="downloadStitchedFasta()">↓ Rebuilt FASTA</button>
     </div>
     <div class="bottom-right">
       <button class="btn primary" id="btnBottomNext">Advance →</button>
@@ -1580,10 +1645,10 @@
 
   <!-- SLIDE-OVER FORENSIC INSPECTOR DRAWER -->
   <div class="drawer-backdrop" id="drawerBackdrop" onclick="closeDrawer()"></div>
-  <aside class="drawer-panel" id="drawerPanel" aria-label="Forensic Inspector">
+  <aside class="drawer-panel" id="drawerPanel" aria-label="Detail inspector">
     <div class="drawer-head">
       <div>
-        <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--orange);letter-spacing:0.05em;" id="drawerKicker">FORENSIC INSPECTOR</div>
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--orange);letter-spacing:0.05em;" id="drawerKicker">DETAIL</div>
         <div style="font-size:15px;font-weight:700;word-break:break-all;" id="drawerTitle">Details</div>
       </div>
       <button class="btn sm" onclick="closeDrawer()">✕ Close</button>
@@ -1595,16 +1660,16 @@
   <div class="modal-overlay hidden" id="pasteModal">
     <div class="modal-card">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-        <div style="font-size:16px;font-weight:700;">Paste FASTA Sequences</div>
+        <div style="font-size:16px;font-weight:700;">Paste FASTA sequences</div>
         <button class="btn sm" onclick="closeModals()">✕</button>
       </div>
       <p style="font-size:12.5px;color:var(--ink-secondary);margin-bottom:10px;">
-        Paste aligned or unaligned FASTA records from HIV-1, Influenza A (pre-concatenated or raw individual segments), SARS-CoV-2, or Sarbecoviruses.
+        HIV-1, Influenza A (one file or 8 separate segment files), SARS-CoV-2, or bat coronaviruses — aligned or not.
       </p>
       <textarea class="fasta-area" id="pasteTextarea" spellcheck="false" placeholder=">Sequence_1&#10;ATGGGTGCGAGAGCGTCAGTATTA..."></textarea>
       <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:12px;">
         <button class="btn" onclick="closeModals()">Cancel</button>
-        <button class="btn primary" onclick="submitPasteModal()">Analyze Sequences →</button>
+        <button class="btn primary" onclick="submitPasteModal()">Use these sequences →</button>
       </div>
     </div>
   </div>
@@ -1613,10 +1678,10 @@
   <div class="modal-overlay hidden" id="streamModal">
     <div class="modal-card">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-        <div style="font-size:16px;font-weight:700;">🌐 Fetch Live Sequences from GenBank or URL</div>
+        <div style="font-size:16px;font-weight:700;">🌐 Fetch sequences from GenBank or a link</div>
         <button class="btn sm" onclick="closeModals()">✕</button>
       </div>
-      <p style="font-size:12.5px;color:var(--ink-secondary);">Streams sequences directly over browser HTTPS (NCBI E-utilities CORS). Nothing leaves your browser.</p>
+      <p style="font-size:12.5px;color:var(--ink-secondary);">Downloads straight to your browser over HTTPS — nothing is uploaded anywhere.</p>
 
       <div class="modal-tabs">
         <button class="seg-pill active" id="streamTabAcc" onclick="setStreamTab('accessions')">NCBI GenBank Accessions</button>
@@ -1624,26 +1689,26 @@
       </div>
 
       <div id="streamPaneAcc">
-        <div class="control-group-label">One-Click Verified Public Cohorts</div>
+        <div class="control-group-label">Quick picks — public datasets</div>
         <div class="segmented-pills" style="margin-bottom:10px;">
           <button class="btn sm" onclick="fillStreamAcc('PP755957.1, PP755958.1, PP755959.1, PP755960.1, PP755961.1, PP755962.1, PP755963.1, PP755964.1')">🐄 Cattle H5N1 B3.13 (8 Separate Segments)</button>
           <button class="btn sm" onclick="fillStreamAcc('OQ708896.1, PQ287375.1, PP272197.1')">🦠 SARS-CoV-2 XBB.1.5 + XDV + Occult BA.2</button>
           <button class="btn sm" onclick="fillStreamAcc('MN908947.3, MN996532.1, MG772933.1')">🦇 Bat Sarbeco (Wuhan + RaTG13 + CoVZC45)</button>
           <button class="btn sm" onclick="fillStreamAcc('U51188.1, L39106.1')">🧬 HIV-1 CRF01_AE &amp; CRF02_AG</button>
         </div>
-        <div class="control-group-label">Accession IDs (Comma or Newline Separated)</div>
+        <div class="control-group-label">GenBank accessions (comma or newline separated)</div>
         <textarea class="fasta-area" id="streamAccInput" style="min-height:95px;" placeholder="e.g. PP755957.1, PP755958.1, ..."></textarea>
       </div>
 
       <div id="streamPaneUrl" class="hidden">
-        <div class="control-group-label">Direct CORS FASTA URL (GitHub blob links auto-convert to raw)</div>
+        <div class="control-group-label">Direct FASTA link (GitHub links work)</div>
         <input type="url" class="input-field" style="width:100%;" id="streamUrlInput" placeholder="https://raw.githubusercontent.com/..." />
       </div>
 
       <div id="streamStatusMsg" style="font-family:var(--font-mono);font-size:11.5px;color:var(--ink-secondary);margin-top:8px;"></div>
       <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:12px;">
         <button class="btn" onclick="closeModals()">Cancel</button>
-        <button class="btn primary" id="btnFetchNow" onclick="executeStreamFetch()">🌐 Fetch &amp; Screen →</button>
+        <button class="btn primary" id="btnFetchNow" onclick="executeStreamFetch()">🌐 Fetch →</button>
       </div>
     </div>
   </div>
@@ -1651,13 +1716,28 @@
   <!-- PREFLIGHT COMPUTE & MEMORY GATE MODAL -->
   <div class="modal-overlay hidden" id="preflightModal">
     <div class="modal-card">
-      <div style="font-size:16px;font-weight:700;color:var(--amber);margin-bottom:6px;">⚡ Large Dataset Pre-Flight Check</div>
+      <div style="font-size:16px;font-weight:700;color:var(--amber);margin-bottom:6px;">⚡ That's a lot of sequences</div>
       <p id="preflightText" style="font-size:13px;color:var(--ink-secondary);margin-bottom:14px;"></p>
       <div style="display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;">
         <button class="btn" id="btnPreflightCancel">Cancel</button>
-        <button class="btn" id="btnPreflightSample">Screen First 150 Records</button>
-        <button class="btn primary" id="btnPreflightProceed">Proceed Full Dataset</button>
+        <button class="btn" id="btnPreflightSample">Try first 150</button>
+        <button class="btn primary" id="btnPreflightProceed">Run all of them</button>
       </div>
+    </div>
+  </div>
+
+
+  <!-- EXAMPLE DATASETS MODAL -->
+  <div class="modal-overlay hidden" id="examplesModal">
+    <div class="modal-card" style="max-width:660px;max-height:80vh;overflow-y:auto;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+        <div style="font-size:16px;font-weight:700;">Example datasets</div>
+        <button class="btn sm" onclick="closeModals()">✕</button>
+      </div>
+      <p style="font-size:12.5px;color:var(--ink-secondary);margin-bottom:10px;">
+        Real sequences from public archives — everything runs on your machine. Expand a row for details.
+      </p>
+      <div id="examplesList"></div>
     </div>
   </div>
 
@@ -1697,88 +1777,88 @@
     const CURATED_SHOWCASES = [
       {
         id: 'iav_raw_8segments',
-        badge: 'IAV 8-SEG ASSEMBLY',
+        badge: 'FLU 8-PIECE ASSEMBLY',
         badgeClass: 'blue',
-        gridLabel: '16 raw records → 2 isolates',
-        title: 'Unconcatenated H5N1 Segments → B3.13 Cattle & D1.1 Bird',
-        desc: 'Simulates real NCBI/GISAID Influenza downloads where all 8 RNA segments arrive as unordered individual FASTA records. EGGMAN groups by strain or disjoint 15-mer signatures and stitches exact segment scaffolds automatically.',
+        gridLabel: '16 files → 2 viruses',
+        title: 'Scrambled flu segments become two complete viruses',
+        desc: 'Real GenBank downloads give you one file per flu segment, in no particular order. Watch EGGMAN sort them into a cattle H5N1 and a wild-bird H5N1 — each piece labeled by origin.',
         callout: 'SRR31347644 → NAm_B313[EA1:PA+HA+NA+MP] (B3.13)',
         file: './examples/iav_raw_8segments.fasta',
         pack: 'auto',
       },
       {
         id: 'iav_reassortment',
-        badge: 'IAV SURVEILLANCE',
+        badge: 'FLU WATCH',
         badgeClass: 'orange',
-        gridLabel: '7 isolates × 13,136 nt',
-        title: 'Avian & Dairy Cattle 8-Segment H5N1 Reassortment Cohort',
-        desc: 'Demonstrates 0-nat inter-segment transitions across Eurasian clonal founders (A1, A3), cattle B3.13, wild-bird D1.1, B3.6, D1.8, and C2.1 (catalogued in the compendium, but conservatively returned as URF because EA2 and EA1 surface segments share fewer than 8 stem SNPs).',
-        callout: 'D1.1: NAm_D1[EA3:PB1+HA+MP+NS] • C2.1 → conservative URF',
+        gridLabel: '7 viruses × 13,136 nt',
+        title: 'Bird flu that picked up pieces from other strains',
+        desc: 'Seven real H5N1 samples — cattle and wild birds. EGGMAN marks which of the 8 pieces in each came from North American vs Eurasian flu, and says “unknown” when a piece is too different to be sure.',
+        callout: 'D1.1: NAm_D1[EA3:PB1+HA+MP+NS] • C2.1 → honest “unknown”',
         file: './examples/iav_reassortment.fasta',
         pack: 'auto',
       },
       {
         id: 'sars_cov2_recomb',
-        badge: 'SARS-COV-2 RECOMB',
+        badge: 'COVID MIXES',
         badgeClass: 'purple',
-        gridLabel: '7 clinical × 29,903 nt',
-        title: 'Omicron Recombinants, Misarchived BA.2 & 4-SNP XEC Rescue',
-        desc: 'Flags PQ287375.1 (Pango XDV, withheld from the 18-lineage compendium) as URF with coordinate barcode, identifies PP272197.1 (archived under BA.2) as ORF1ab-recombined XBB.1.5, and rescues 4-SNP XEC under CoV low-SNP tuning.',
-        callout: 'PP272197.1: BA.2 submission → BJ.1[BM.1.1.1:S..ORF10] (XBB.1.5)',
+        gridLabel: '7 sequences × 29,903 nt',
+        title: 'A genome filed under the wrong variant — caught',
+        desc: 'One sample was archived as BA.2 but most of it is actually XBB.1.5. Another is a hybrid the reference panel has never seen, so it honestly gets labeled “unknown” — and a tiny 4-mutation hybrid shows up when you loosen the settings.',
+        callout: 'PP272197.1: filed as BA.2 → really BJ.1[BM.1.1.1:S..ORF10] (XBB.1.5)',
         file: './examples/sars_cov2_recomb.fasta',
         pack: 'auto',
       },
       {
         id: 'sarbecovirus_wildlife',
-        badge: 'WILDLIFE CORONAVIRUS',
+        badge: 'BAT CORONAVIRUSES',
         badgeClass: 'green',
         gridLabel: '6 genomes × 29,904 nt',
-        title: 'Deep Homologous Recombination in Bat Sarbecoviruses',
-        desc: 'Maps natural ancient mosaic tracts across Wuhan-Hu-1, RaTG13, BANAL-52, CoVZC45, PrC31, and WIV16 without phylogenetic window over-splitting.',
-        callout: 'Wuhan-Hu-1 Clonal • RaTG13 / BANAL-52 / PrC31 URF formulas',
+        title: 'Bat viruses that have been mixing for a very long time',
+        desc: 'Six related coronaviruses — including the Wuhan reference and several bat viruses — carry old mixes of each other’s DNA. EGGMAN draws where each piece came from.',
+        callout: 'Wuhan-Hu-1 single strain • RaTG13 / BANAL-52 / PrC31 mixed',
         file: './examples/sarbecovirus_wildlife.fasta',
         pack: 'auto',
       },
       {
         id: 'subtype_g',
-        badge: 'REFERENCE AUDIT',
+        badge: 'HIDDEN HISTORY',
         badgeClass: 'amber',
-        gridLabel: '4 HIV-1 × HXB2',
-        title: 'Scrubbing Ancestral Subtype G0[A1:gp41..nef] Reference Chimera',
-        desc: 'Contrasts clean epidemiological Subtype_G calling with underlying 14-trunk basal deconvolution uncovering the fixed ancestral A1 envelope tract.',
-        callout: 'Epidemiological: Subtype_G(Clonal) | Basal: G0[A1:gp41..nef]',
+        gridLabel: '4 HIV-1 samples',
+        title: 'A “clean” strain that is secretly a mix',
+        desc: 'Subtype G looks like one strain clinically — but under the hood, its envelope came from a different strain so long ago the join is frozen into every copy. See both readings side by side.',
+        callout: 'Clinical: Subtype_G (one strain) | Deep ancestry: G0[A1:gp41..nef]',
         file: './examples/subtype_g.fasta',
         pack: 'auto',
       },
       {
         id: 'demos',
-        badge: 'HIV-1 MIXED COHORT',
+        badge: 'HIV-1 MIXED SET',
         badgeClass: 'orange',
-        gridLabel: '5 unaligned sequences',
-        title: 'Unaligned Full-Length & Partial Clinical HIV-1 Bench',
-        desc: 'Reconciles unaligned clinical queries across HXB2 coding coordinates while leaving drug-resistance codons in pol unmasked.',
-        callout: 'Automatic full vs @pol vs @env scope & 4-gate clade guard',
+        gridLabel: '5 messy sequences',
+        title: 'Real-world sequences: uneven lengths, no alignment',
+        desc: 'Some cover the whole genome, some just a piece, none pre-aligned. EGGMAN still places each on the same map and labels what it can.',
+        callout: 'Whole-genome vs partial coverage — handled automatically',
         file: './examples/demos.fasta',
         pack: 'auto',
       },
       {
         id: 'partial_env',
-        badge: 'HIDDEN EPIDEMIC',
+        badge: 'HIDDEN CLUSTER',
         badgeClass: 'blue',
-        gridLabel: '5 partial env reads',
-        title: 'East African D[A1:env]@1986 Partial Envelope Clustering',
-        desc: 'Recovers reciprocal gp41 breakpoints (HXB2 8250–8251) linking partial env clinical studies invisible to routine pol resistance sequencing.',
-        callout: 'Breakpoints preserved cleanly in ~1.8 kb partial env fragments',
+        gridLabel: '5 short sequences',
+        title: 'An old transmission chain hiding in short reads',
+        desc: 'Five short envelope sequences from 1986 share the same strain switch — a clue they belonged to one outbreak that standard testing misses.',
+        callout: 'Same join found in ~1.8 kb fragments',
         file: './examples/partial_env.fasta',
         pack: 'auto',
       },
       {
         id: 'crf01_02',
-        badge: 'FOUNDER SUPER-HUBS',
+        badge: 'OLD MIXES',
         badgeClass: 'green',
-        gridLabel: '6 HIV-1 × HXB2',
-        title: 'CRF01_AE (?E vif–nef Ghost) & 1956 CRF02_AG Super-Hubs',
-        desc: 'Compares locus-restricted ?E ancestry downstream of pol against pre-Subtype-G African founder recombination.',
+        gridLabel: '6 HIV-1 samples',
+        title: 'Two famous hybrid HIV strains, side by side',
+        desc: 'CRF01_AE carries a piece from a strain nobody has found intact. CRF02_AG was built from early African lineages. Compare their different mix maps.',
         callout: 'A1[?E:vif..nef] & A1[G0:gag..RT+RT..vpu+gp41..nef]',
         file: './examples/crf01_02.fasta',
         pack: 'auto',
@@ -1787,104 +1867,104 @@
 
     const GUIDED_TOURS = {
       flu_stitch: {
-        title: 'Tour 1: Raw 8-Segment H5N1 Assembly & Cattle B3.13 Reassortment',
+        title: 'Tour: Flu — 8 pieces into 2 viruses',
         file: './examples/iav_raw_8segments.fasta',
         pack: 'auto',
         params: { gamma: 0, minSpan: 0, minSnps: 5, pThresh: 1e-4, maskLoops: true, segMode: 'auto' },
         steps: {
           stage0: {
-            text: 'Initialized at standard default gates (γ = 7.0 nats, ≥5 SNPs, p < 1e-4). 16 separate segment records arrived in scrambled order. EGGMAN auto-detected Influenza A (8-Seg), grouped them by strain headers (or by disjoint segment 15-mer signatures when headers lack strain names) into 2 complete isolates (Cattle B3.13 & Bird D1.1), and populated every PB2–NS slot.',
+            text: '16 segment files arrived scrambled. EGGMAN guessed flu, sorted them into 2 complete viruses (a cattle H5N1 and a wild-bird H5N1), and filled every one of the 8 slots.',
             chips: [
-              { label: '🔍 Inspect B3.13 8-Slot Provenance', fn: () => window.openStage0Drawer(0) },
-              { label: '🔗 Try Keep-Records-Separate Mode', fn: () => window.setSegMode('per_record') },
+              { label: '🔍 See how B3.13 was assembled', fn: () => window.openStage0Drawer(0) },
+              { label: '🔗 Try keeping files separate instead', fn: () => window.setSegMode('per_record') },
             ]
           },
           stage1: {
-            text: 'In segmented mode, the pack manifest locks intra-segment recombination (10^6 nats) and sets inter-segment boundary transitions to 0 nats—independent of the contiguous switch penalty input (where 0 selects the pack default 7.0 nats). Each RNA segment maps atomically: B3.13 pairs North American PB2+PB1+NP+NS with Eurasian EA1 PA+HA+NA+MP.',
+            text: 'Each colored bar is one virus, piece by piece. B3.13 kept 4 North American pieces and swapped in 4 Eurasian ones — that is a “reassortment”. Click a virus to see the evidence.',
             chips: [
-              { label: '🧬 Open B3.13 Guarded Clade Drawer', fn: () => window.openStage1Drawer(0) },
-              { label: '🦅 Open D1.1 Wild-Bird Drawer', fn: () => window.openStage1Drawer(1) },
+              { label: '🧬 Open the cattle virus (B3.13)', fn: () => window.openStage1Drawer(0) },
+              { label: '🦅 Open the bird virus (D1.1)', fn: () => window.openStage1Drawer(1) },
             ]
           },
           stage2: {
-            text: 'Each inter-segment donor switch is audited on physical concatenated coordinates (PB2: 1..2280 through NS: 12299..13136) with exact 2×2 Fisher SNP counts separating EA and NAm RNA segments.',
+            text: 'Every piece swap gets a statistical check — the mutation counts on either side of a join have to clearly favor different strains.',
             chips: [
-              { label: '🔬 Inspect First Segment Switch (Fisher 2×2)', fn: () => window.openFirstBreakpointDrawer() },
+              { label: '🔬 See the check on one swap', fn: () => window.openFirstBreakpointDrawer() },
             ]
           },
           stage3: {
-            text: 'Stage 3 compiles an auditable Dossier plus full 8-segment stitched FASTA download alongside the 10-genotype Influenza reference compendium.',
+            text: 'Take it with you: a standalone report, the rebuilt 8-piece genomes, or the raw data — plus the flu reference panel we matched against.',
             chips: [
-              { label: '📄 Download Standalone HTML Dossier', fn: () => window.downloadHTMLDossier() },
-              { label: '↓ Download Stitched 8-Seg FASTA', fn: () => window.downloadStitchedFasta() },
+              { label: '📄 Download the report', fn: () => window.downloadHTMLDossier() },
+              { label: '↓ Download rebuilt FASTA', fn: () => window.downloadStitchedFasta() },
             ]
           }
         }
       },
       sc2_xec: {
-        title: 'Tour 2: SARS-CoV-2 Recombinants, Misarchived BA.2 & 4-SNP XEC',
+        title: 'Tour: COVID — a mislabeled genome',
         file: './examples/sars_cov2_recomb.fasta',
         pack: 'auto',
         params: { gamma: 0, minSpan: 0, minSnps: 5, pThresh: 1e-4, maskLoops: true, segMode: 'auto' },
         steps: {
           stage0: {
-            text: 'Initialized at standard default gates (γ = 7.0 nats, ≥5 SNPs, p < 1e-4). Seven unaligned 29.9-kb coronavirus genomes auto-detected into the SARS-CoV-2 Wuhan-Hu-1 pack. Under default gates, shallow 4-SNP Omicron splits like XEC (PV635430.1) remain conservatively unsplit; click the chip below to apply CoV 4-SNP tuning (γ = 3.5, ≥3 SNPs, p < 0.01) and rescue XEC.',
+            text: 'Seven COVID genomes, correctly guessed as SARS-CoV-2. On default settings one tiny hybrid (XEC) stays hidden — the button below loosens the settings to catch it.',
             chips: [
-              { label: '⚡ Apply CoV 4-SNP Tuning (Rescue XEC)', fn: () => { window.applyParamPreset('cov_low'); window.reapplyParams(); } },
+              { label: '⚡ Loosen settings (catch small hybrids)', fn: () => { window.applyParamPreset('cov_low'); window.reapplyParams(); } },
             ]
           },
           stage1: {
-            text: 'Check PP272197.1 (submitted to GenBank solely under BA.2): EGGMAN’s ORF1ab coordinate projection supports XBB.1.5 ancestry. Meanwhile PQ287375.1 (Pango XDV, intentionally withheld from this pack’s 18-lineage compendium) is flagged as an uncatalogued recombinant (URF) with parental coordinate formula BJ.1[JN.1:ORF1b..ORF10].',
+            text: 'PP272197.1 was filed as BA.2 — but its first big chunk is really XBB.1.5. PQ287375.1 is a hybrid our panel has never seen, so it is honestly labeled “unknown”.',
             chips: [
-              { label: '🔍 Inspect Misarchived BA.2 (PP272197.1)', fn: () => window.openStage1ByPrefix('PP272197') },
-              { label: '🏷 Inspect Withheld XDV Coordinate Formula', fn: () => window.openStage1ByPrefix('PQ287375') },
-              { label: '⚡ Apply CoV 4-SNP Tuning (Rescue XEC)', fn: () => { window.applyParamPreset('cov_low'); window.reapplyParams(); } },
+              { label: '🔍 See the mislabeled genome', fn: () => window.openStage1ByPrefix('PP272197') },
+              { label: '🏷 See the “unknown” one', fn: () => window.openStage1ByPrefix('PQ287375') },
+              { label: '⚡ Loosen settings (catch small hybrids)', fn: () => { window.applyParamPreset('cov_low'); window.reapplyParams(); } },
             ]
           },
           stage2: {
-            text: 'Along Wuhan-Hu-1 ORF1a..ORF10, SARS-CoV-2 recombination junctions cluster near ORF1b/S and Spike NTD. Apply CoV 4-SNP tuning below if XEC (PV635430.1) remained below the default 5-SNP floor.',
+            text: 'COVID hybrids tend to switch strains near the spike gene — you can see the joins cluster there.',
             chips: [
-              { label: '🔬 Inspect Spike Breakpoint Fisher Audit', fn: () => window.openFirstBreakpointDrawer() },
-              { label: '⚡ Apply CoV 4-SNP Tuning (Rescue XEC)', fn: () => { window.applyParamPreset('cov_low'); window.reapplyParams(); } },
+              { label: '🔬 See a spike-region check', fn: () => window.openFirstBreakpointDrawer() },
+              { label: '⚡ Loosen settings (catch small hybrids)', fn: () => { window.applyParamPreset('cov_low'); window.reapplyParams(); } },
             ]
           },
           stage3: {
-            text: 'Explore the 18 clinical SARS-CoV-2 waves and X* recombinants in the pack compendium below, or export JSON/CSV reports.',
+            text: 'Browse the 18 known COVID variants and hybrids in the reference panel, or download the results.',
             chips: [
-              { label: '📄 Preview Standalone Dossier Export', fn: () => window.downloadHTMLDossier() },
+              { label: '📄 Download the report', fn: () => window.downloadHTMLDossier() },
             ]
           }
         }
       },
       hiv_discovery: {
-        title: 'Tour 3: HIV-1 Ancestral Subtype G0 Reference Scrubbing',
+        title: 'Tour: HIV-1 — a hidden ancestral mix',
         file: './examples/subtype_g.fasta',
         pack: 'auto',
         params: { gamma: 0, minSpan: 0, minSnps: 5, pThresh: 1e-4, maskLoops: true, segMode: 'auto' },
         steps: {
           stage0: {
-            text: 'Initialized at standard default gates (γ = 7.0 nats, ≥5 SNPs, p < 1e-4). HIV-1 Group M is active on HXB2 coordinates (coding 790..9417) with unmasked drug-resistance codons in pol and V1–V5 hypervariable loop masking enabled.',
+            text: 'Four HIV-1 sequences, mapped onto the standard HXB2 reference. Everything looks normal so far — the surprise is next.',
             chips: [
-              { label: '🔍 Inspect First Genome QA', fn: () => window.openStage0Drawer(0) },
+              { label: '🔍 Check one sequence', fn: () => window.openStage0Drawer(0) },
             ]
           },
           stage1: {
-            text: 'Toggle Track View or open any Subtype G genome: Guarded Clade Calling preserves clinical Subtype_G(Clonal) identity, while the Basal Founder Track supports the ancient G0[A1:gp41..nef] mosaic inside canonical Subtype G.',
+            text: 'Clinically, Subtype G counts as one strain. Switch to deep ancestry and you see its envelope actually came from strain A1 — an ancient mix baked into every copy.',
             chips: [
-              { label: '🧬 Toggle Basal Trunk Track', fn: () => window.setTrackMode('basal') },
-              { label: '🔬 Inspect Dual G / G0 Forensic Drawer', fn: () => window.openStage1Drawer(0) },
+              { label: '🧬 Switch to deep ancestry', fn: () => window.setTrackMode('basal') },
+              { label: '🔬 See both readings', fn: () => window.openStage1Drawer(0) },
             ]
           },
           stage2: {
-            text: 'Even when an isolate carries clonal clinical labels, Basal 14-trunk deconvolution reveals Fisher-supported evidence for its ancestral A1 envelope crossover across gp41..nef.',
+            text: 'The ancestral join is backed by the same statistical check as any modern one — the envelope switch sits at gp41–nef.',
             chips: [
-              { label: '🔬 Open Fisher 2×2 Table', fn: () => window.openFirstBreakpointDrawer() },
+              { label: '🔬 See the evidence', fn: () => window.openFirstBreakpointDrawer() },
             ]
           },
           stage3: {
-            text: 'Browse all 200 embedded HIV-1 Group M reference lineages (162 LANL clades + 38 newly unified circulating clusters) in the Stage 3 Compendium table.',
+            text: 'The HIV panel ships 200 known strains — the largest in the app. Filter it below or download everything.',
             chips: [
-              { label: '🔍 Filter All 38 Novel_Circulating Lineages', fn: () => { document.getElementById('atlasSearch').value = 'Novel_Circulating'; window.renderAtlasTable(); } },
+              { label: '🔍 Filter to the 38 newest strains', fn: () => { document.getElementById('atlasSearch').value = 'Novel_Circulating'; window.renderAtlasTable(); } },
             ]
           }
         }
@@ -1899,6 +1979,8 @@
       running: false,
       activeView: 'landing',
       selectedPack: 'auto',
+      stagedFasta: '',
+      stagedLabel: '',
       launchMode: 'auto',
       segMode: 'auto',
       trackMode: 'epi',
@@ -2101,23 +2183,35 @@
     };
 
     function syncPackPills() {
-      const sel = document.getElementById('topbarPackSelect');
-      if (sel) {
-        sel.value = state.selectedPack;
-        sel.classList.toggle('override', state.selectedPack !== 'auto');
+      const chip = document.getElementById('packChip');
+      if (chip) {
+        const resp = state.response;
+        if (resp) {
+          const label = PACK_LABELS[resp.active_pack] || resp.active_pack;
+          const how = state.selectedPack === 'auto' ? 'auto-detected' : 'your pick';
+          chip.innerHTML = `🧬 ${escapeHtml(label)} <span class="chip-hint">· ${how}</span>`;
+        } else {
+          chip.innerHTML = state.selectedPack === 'auto'
+            ? '🧬 Virus: auto'
+            : `🧬 ${escapeHtml(PACK_LABELS[state.selectedPack] || state.selectedPack)} <span class="chip-hint">· your pick</span>`;
+        }
+        chip.classList.toggle('manual', state.selectedPack !== 'auto');
       }
       document.querySelectorAll('#landingPackPills .seg-pill').forEach(b => {
         b.classList.toggle('active', b.dataset.pack === state.selectedPack);
       });
     }
 
-    function setSelectedPack(packId) {
+    // The header chip is read-only status. The only change points are the
+    // landing pills (before a run) and the Check-stage detection bars (after).
+    // A click IS the decision — if sequences are loaded it re-runs and the
+    // navigation itself announces the effect.
+    window.applyPack = function(packId, stayView) {
+      if (!packId || packId === state.selectedPack) return;
       state.selectedPack = packId;
       syncPackPills();
-      if (state.rawFasta && state.activeView !== 'landing') {
-        executeScreening(state.rawFasta, state.activeView);
-      }
-    }
+      if (state.rawFasta) executeScreening(state.rawFasta, stayView || null);
+    };
 
     // =========================================================================
     // NAVIGATION & VIEW RENDERING
@@ -2141,16 +2235,16 @@
         bottomBar.classList.remove('hidden');
         bottomFasta.classList.toggle('hidden', !(state.response?.pack_meta?.is_segmented));
         if (view === 'stage0') {
-          nextBtn.textContent = 'Inspect Mosaic Atlas (Stage 1) →';
+          nextBtn.textContent = 'Next: the labels →';
           nextBtn.onclick = () => goView('stage1');
         } else if (view === 'stage1') {
-          nextBtn.textContent = 'Inspect Breakpoints (Stage 2) →';
+          nextBtn.textContent = 'Next: the joins →';
           nextBtn.onclick = () => goView('stage2');
         } else if (view === 'stage2') {
-          nextBtn.textContent = 'Open Compendium & Dossier (Stage 3) →';
+          nextBtn.textContent = 'Next: keep the results →';
           nextBtn.onclick = () => goView('stage3');
         } else {
-          nextBtn.textContent = '← Return to Launchpad';
+          nextBtn.textContent = '← Back to start';
           nextBtn.onclick = () => goView('landing');
         }
       }
@@ -2253,7 +2347,7 @@
       if (bytes > 8_000_000 || approxRecords > 550) {
         const modal = document.getElementById('preflightModal');
         document.getElementById('preflightText').innerHTML =
-          `Detected <strong>${approxRecords.toLocaleString()}</strong> FASTA records (${(bytes / 1e6).toFixed(1)} MB). Screening all records locally inside WebAssembly should complete in roughly ${(approxRecords * 0.004).toFixed(1)}–${(approxRecords * 0.012).toFixed(1)} s.`;
+          `Found <strong>${approxRecords.toLocaleString()}</strong> sequences (${(bytes / 1e6).toFixed(1)} MB). Checking them all in your browser takes about ${(approxRecords * 0.004).toFixed(1)}–${(approxRecords * 0.012).toFixed(1)} s.`;
         modal.classList.remove('hidden');
 
         document.getElementById('btnPreflightCancel').onclick = () => modal.classList.add('hidden');
@@ -2283,7 +2377,7 @@
       }
 
       state.running = true;
-      setLed('busy', '⚡ Screening…');
+      setLed('busy', '⚡ Analyzing…');
       document.getElementById('stepBtn0').classList.add('running');
 
       try {
@@ -2316,11 +2410,12 @@
         }
 
         document.getElementById('stepBadge0').textContent = asm.was_multi_record_assembled
-          ? `${asm.raw_record_count}→${results.length}`
-          : `${results.length} seq`;
-        document.getElementById('stepBadge1').textContent = `${state.elapsedMs.toFixed(0)}ms`;
-        document.getElementById('stepBadge2').textContent = `${nBps} BPs`;
+          ? `${asm.raw_record_count}→${results.length} seqs`
+          : `${results.length} seqs`;
+        document.getElementById('stepBadge1').textContent = `${results.length} labeled`;
+        document.getElementById('stepBadge2').textContent = `${nBps} joins`;
         document.getElementById('stepBadge3').textContent = `${meta.compendium.length || meta.trunk_names.length} refs`;
+        syncPackPills();
 
         const shortPack = { hiv1: 'HIV-1', iav: 'IAV 8-Seg', sc2: 'SC2', sarbeco: 'Sarbeco' }[resp.active_pack] || resp.active_pack;
         setLed('ready', `Ready • ${shortPack}`);
@@ -2354,14 +2449,14 @@
       document.getElementById('s0PackBadge').textContent = `${PACK_LABELS[resp.active_pack] || resp.active_pack}`;
       document.getElementById('s0ConfBadge').textContent = activeIsAuto
         ? `AUTO-DETECTED (${(det.confidence || 'high').toUpperCase()})`
-        : 'MANUAL PACK OVERRIDE';
+        : 'YOU PICKED THIS VIRUS';
 
       const segMsg = asm.was_multi_record_assembled
-        ? ` — Automatically stitched ${asm.raw_record_count} raw segment FASTA records into ${asm.isolate_count} coordinate-anchored isolate scaffold(s).`
+        ? ` — grouped ${asm.raw_record_count} loose segment records into ${asm.isolate_count} whole virus(es).`
         : '';
-      document.getElementById('s0Headline').textContent = `${results.length} Isolate(s) Mapped to ${meta.pathogen_name} (${meta.reference_name})`;
+      document.getElementById('s0Headline').textContent = `${results.length} sequence(s) mapped onto the ${meta.pathogen_name} reference (${meta.reference_name})`;
       const provTag = meta.pack_version ? ` • Pack v${meta.pack_version} (${meta.snapshot_date})` : '';
-      document.getElementById('s0Subheadline').textContent = `Grid: ${meta.coding_start.toLocaleString()}..${meta.coding_end.toLocaleString()} nt across ${meta.landmarks.length} landmark(s)${provTag}${segMsg}`;
+      document.getElementById('s0Subheadline').textContent = `Reference map: ${meta.coding_start.toLocaleString()}..${meta.coding_end.toLocaleString()} nt across ${meta.landmarks.length} region(s)${provTag}${segMsg}`;
 
       const meanCov = results.length
         ? (results.reduce((a, r) => a + r.mapped_coding_nt, 0) / results.length) / Math.max(1, meta.coding_end - meta.coding_start + 1) * 100
@@ -2369,29 +2464,29 @@
 
       document.getElementById('s0KpiGrid').innerHTML = `
         <div class="kpi-box">
-          <div class="metric-caption">Active Pathogen</div>
+          <div class="metric-caption">Virus</div>
           <div class="metric-num small">${escapeHtml(PACK_LABELS[resp.active_pack] || meta.pathogen_name)}</div>
-          <div class="metric-sub">${meta.is_segmented ? '8-segment grid' : 'Contiguous genome grid'} • ${escapeHtml(meta.pack_version || 'v0.2')}</div>
+          <div class="metric-sub">${meta.is_segmented ? '8-segment map' : 'single-genome map'} • ${escapeHtml(meta.pack_version || 'v0.2')}</div>
         </div>
         <div class="kpi-box">
-          <div class="metric-caption">Admitted Isolates</div>
+          <div class="metric-caption">Sequences accepted</div>
           <div class="metric-num">${results.length}</div>
-          <div class="metric-sub">${asm.raw_record_count} raw FASTA record(s)</div>
+          <div class="metric-sub">${asm.raw_record_count} FASTA record(s) in</div>
         </div>
         <div class="kpi-box">
-          <div class="metric-caption">Reference Coding Span</div>
+          <div class="metric-caption">Reference length</div>
           <div class="metric-num">${(meta.coding_end - meta.coding_start + 1).toLocaleString()} nt</div>
           <div class="metric-sub">${escapeHtml(meta.reference_name)} (${meta.coding_start}..${meta.coding_end})</div>
         </div>
         <div class="kpi-box">
-          <div class="metric-caption">Mean Coding Coverage</div>
+          <div class="metric-caption">Avg. genome covered</div>
           <div class="metric-num">${meanCov.toFixed(1)}%</div>
-          <div class="metric-sub">${meta.trunk_names.length} basal trunks</div>
+          <div class="metric-sub">${meta.trunk_names.length} strains in panel</div>
         </div>
         <div class="kpi-box">
-          <div class="metric-caption">Projection Runtime</div>
+          <div class="metric-caption">Run time</div>
           <div class="metric-num">${state.elapsedMs.toFixed(1)} ms</div>
-          <div class="metric-sub">Rust WASM local execution</div>
+          <div class="metric-sub">in your browser</div>
         </div>
       `;
 
@@ -2437,10 +2532,10 @@
           b.classList.toggle('active', b.dataset.segmode === state.segMode);
         });
         document.getElementById('segAsmTitle').textContent = asm.was_multi_record_assembled
-          ? `Assembled ${asm.raw_record_count} Raw Segment Records into ${asm.isolate_count} Complete Isolate(s)`
-          : `${asm.isolate_count} Influenza Isolate(s) Mapped Across PB2..NS Slots`;
+          ? `Grouped ${asm.raw_record_count} loose segment files into ${asm.isolate_count} whole virus(es)`
+          : `${asm.isolate_count} flu virus(es) — all 8 slots mapped`;
         document.getElementById('segAsmSubtitle').textContent =
-          'Individual RNA segments (including out-of-order GenBank segments or reverse-complement vRNA) are coordinate-anchored into exact 13,136 nt scaffolds without cross-segment coordinate bleed.';
+          'Each of the 8 flu pieces (PB2→NS) was matched to its own file — even if they arrived scrambled or in reverse order.';
 
         const segQ = (state.s0SegSearch || '').toLowerCase();
         const isoList = (asm.isolates || [])
@@ -2502,8 +2597,10 @@
     window.setS0QaPage = function(p) { state.s0QaPage = p; renderStage0Tables(); };
     window.setS0QaPageSize = function(sz) { state.s0QaPageSize = sz; state.s0QaPage = 1; renderStage0Tables(); };
 
+    // Stage-0 detection bars: one click to override which panel was used.
+    // Stays on the Check stage so you see the new detection immediately.
     window.overridePackFromStage = function(packId) {
-      setSelectedPack(packId);
+      applyPack(packId, 'stage0');
     };
 
     window.setSegMode = function(mode) {
@@ -2554,15 +2651,15 @@
       const nClonal = results.length - nUnclass - nUrf - nCertified;
 
       document.getElementById('s1PackBadge').textContent = `${PACK_LABELS[resp.active_pack] || meta.pathogen_name} • ${meta.reference_name}`;
-      document.getElementById('s1Headline').textContent = `${nClonal} Clonal Founders • ${nCertified} Certified Mosaic/Reassortants • ${nUrf} Novel URFs`;
-      document.getElementById('s1Subheadline').textContent = `Showing physical coordinate barcodes mapped to ${meta.reference_name} (${meta.coding_start}..${meta.coding_end} nt). Click any card to inspect guarded clade checks and segment tables.`;
+      document.getElementById('s1Headline').textContent = `${nClonal} single-strain • ${nCertified} confirmed mixes • ${nUrf} unknown`;
+      document.getElementById('s1Subheadline').textContent = `Each genome is drawn as a colored map on the ${meta.reference_name} reference. Click any entry for the evidence.`;
 
       document.getElementById('s1KpiGrid').innerHTML = `
-        <div class="kpi-box"><div class="metric-caption">Isolates Screened</div><div class="metric-num">${results.length}</div><div class="metric-sub">${meta.is_segmented ? '8-segment scaffolds' : 'Contiguous genomes'}</div></div>
-        <div class="kpi-box"><div class="metric-caption">Clonal Founders</div><div class="metric-num">${nClonal}</div><div class="metric-sub">Single-trunk purity passed</div></div>
-        <div class="kpi-box"><div class="metric-caption">Certified Recomb / Reassort</div><div class="metric-num">${nCertified}</div><div class="metric-sub">All 4 clade guards passed</div></div>
-        <div class="kpi-box"><div class="metric-caption">Novel URFs Flagged</div><div class="metric-num">${nUrf}</div><div class="metric-sub">${nUnclass} unclassifiable</div></div>
-        <div class="kpi-box"><div class="metric-caption">WASM Throughput</div><div class="metric-num">${state.elapsedMs.toFixed(1)} ms</div><div class="metric-sub">${state.elapsedMs > 0 ? Math.round((results.length * 1000) / state.elapsedMs).toLocaleString() : '—'} iso/s</div></div>
+        <div class="kpi-box"><div class="metric-caption">Sequences checked</div><div class="metric-num">${results.length}</div><div class="metric-sub">${meta.is_segmented ? '8-piece genomes' : 'whole genomes'}</div></div>
+        <div class="kpi-box"><div class="metric-caption">Single strain</div><div class="metric-num">${nClonal}</div><div class="metric-sub">one label throughout</div></div>
+        <div class="kpi-box"><div class="metric-caption">Confirmed mixes</div><div class="metric-num">${nCertified}</div><div class="metric-sub">passed all checks</div></div>
+        <div class="kpi-box"><div class="metric-caption">Unknown (URF)</div><div class="metric-num">${nUrf}</div><div class="metric-sub">${nUnclass} unclassifiable</div></div>
+        <div class="kpi-box"><div class="metric-caption">Run time</div><div class="metric-num">${state.elapsedMs.toFixed(1)} ms</div><div class="metric-sub">${state.elapsedMs > 0 ? Math.round((results.length * 1000) / state.elapsedMs).toLocaleString() : '—'} seq/s</div></div>
       `;
 
       // Dynamic Color Legend for Active Pathogen Trunks
@@ -2571,7 +2668,7 @@
         const col = getLineageColor(t);
         return `<div class="legend-item"><span class="swatch" style="background:${col}"></span><span>${escapeHtml(t)}</span></div>`;
       }).join('');
-      legend.innerHTML = `<span style="font-size:11px;font-weight:700;color:var(--ink-secondary);text-transform:uppercase;margin-right:4px;">Basal Trunks (${meta.trunk_names.length}):</span>${items}`;
+      legend.innerHTML = `<span style="font-size:11px;font-weight:700;color:var(--ink-secondary);text-transform:uppercase;margin-right:4px;">Strains in panel (${meta.trunk_names.length}):</span>${items}`;
 
       filterAndDrawStage1Cards();
     }
@@ -2694,8 +2791,8 @@
           isoFiltered = catFiltered.filter(x => allowed.has(x.idx));
           filterBanner.classList.remove('hidden');
           filterBanner.innerHTML = `
-            <div><strong>Filtered to architecture:</strong> <code>${escapeHtml(matchedGrp.lin)}</code> &mdash; <code>${escapeHtml(matchedGrp.epiFormula)}</code> (${isoFiltered.length.toLocaleString()} isolate${isoFiltered.length === 1 ? '' : 's'})</div>
-            <button class="btn sm" onclick="clearS1GroupFilter()">✕ Show All ${catFiltered.length.toLocaleString()} Isolates</button>
+            <div><strong>Showing only:</strong> <code>${escapeHtml(matchedGrp.lin)}</code> &mdash; <code>${escapeHtml(matchedGrp.epiFormula)}</code> (${isoFiltered.length.toLocaleString()} sequence${isoFiltered.length === 1 ? '' : 's'})</div>
+            <button class="btn sm" onclick="clearS1GroupFilter()">✕ Show all ${catFiltered.length.toLocaleString()}</button>
           `;
         } else {
           state.s1GroupFilter = null;
@@ -2729,7 +2826,7 @@
               const pillClass = (r.n_segments === 0 || cat === 'Unclassifiable') ? 'danger' : (cat === 'URF' ? 'orange' : 'green');
               const bc = state.trackMode === 'basal' ? r.hxb2_barcode : (r.epidemiological_barcode || r.hxb2_barcode);
               const sup = r.call_support;
-              const supShort = sup ? `${sup.identity_pct.toFixed(1)}% • ${r.n_breakpoints} BPs` : `${r.n_breakpoints} BPs`;
+              const supShort = sup ? `${sup.identity_pct.toFixed(1)}% • ${r.n_breakpoints} joins` : `${r.n_breakpoints} joins`;
               return `
                 <tr class="clickable" onclick="openStage1Drawer(${idx})">
                   <td class="mono" style="font-weight:600;max-width:210px;word-break:break-all;">${escapeHtml(r.sequence_id)}</td>
@@ -2768,7 +2865,7 @@
         const pillLabel = (r.n_segments === 0 || cat === 'Unclassifiable')
           ? 'Unclassifiable'
           : (cat === 'URF'
-            ? `URF (${r.n_breakpoints} Breakpoint${r.n_breakpoints === 1 ? '' : 's'})`
+            ? `Unknown (${r.n_breakpoints} join${r.n_breakpoints === 1 ? '' : 's'})`
             : `${lin} [${cat.replace(/_/g, ' ')}]`);
 
         const epiBc = r.epidemiological_barcode || r.hxb2_barcode;
@@ -2777,7 +2874,7 @@
         const sup = r.call_support;
         const supText = sup
           ? `${sup.identity_pct.toFixed(1)}% id • ${sup.net_stem_snps >= 0 ? '+' : ''}${sup.net_stem_snps} stem SNPs • p=${sup.p_value.toExponential(1)}`
-          : 'Basal scaffold fallback';
+          : 'no confident match — showing best guess';
 
         return `
           <div class="isolate-card" onclick="openStage1Drawer(${idx})">
@@ -2790,22 +2887,22 @@
             </div>
             <div class="formula-strip">
               <div>
-                <div class="metric-caption">Epidemiological Formula</div>
+                <div class="metric-caption">Clinical label recipe</div>
                 <div class="mono" style="font-size:12.5px;font-weight:700;color:var(--orange);word-break:break-word;">${escapeHtml(r.epidemiological_formula || r.descriptive_name)}</div>
               </div>
               <div>
-                <div class="metric-caption">Basal Trunk Formula</div>
+                <div class="metric-caption">Deep ancestry recipe</div>
                 <div class="mono" style="font-size:12.5px;font-weight:600;word-break:break-word;">${escapeHtml(r.basal_formula || r.descriptive_name)}</div>
               </div>
               <div>
-                <div class="metric-caption">Guarded Clade Support</div>
+                <div class="metric-caption">Evidence</div>
                 <div class="mono" style="font-size:11.5px;color:var(--ink-secondary);">${escapeHtml(supText)}</div>
               </div>
             </div>
             <div class="svg-wrap">
-              ${hasDual ? '<div class="metric-caption" style="margin-bottom:3px;">Epidemiological Assignment Track</div>' : ''}
+              ${hasDual ? '<div class="metric-caption" style="margin-bottom:3px;">Clinical label</div>' : ''}
               ${renderBarcodeSVG(primaryBc, meta, 920, !hasDual)}
-              ${hasDual ? `<div class="metric-caption" style="margin:6px 0 3px;">Basal Ancestral Trunk Deconvolution Track</div>${renderBarcodeSVG(r.hxb2_barcode, meta, 920, true)}` : ''}
+              ${hasDual ? `<div class="metric-caption" style="margin:6px 0 3px;">Deep ancestry</div>${renderBarcodeSVG(r.hxb2_barcode, meta, 920, true)}` : ''}
             </div>
           </div>
         `;
@@ -2876,16 +2973,16 @@
       }
 
       document.getElementById('s2PackBadge').textContent = `${PACK_LABELS[resp.active_pack] || meta.pathogen_name}`;
-      document.getElementById('s2Headline').textContent = `${allBps.length} Verified Fisher Exact Crossover${allBps.length === 1 ? '' : 's'} Across ${nMosaicIso} Isolate(s)`;
-      document.getElementById('s2Subheadline').textContent = `Every transition is backed by Bonferroni-checked flanking length and a two-sided 2×2 Fisher exact allelic test on informative SNPs.`;
+      document.getElementById('s2Headline').textContent = `${allBps.length} verified join${allBps.length === 1 ? '' : 's'} across ${nMosaicIso} sequence(s)`;
+      document.getElementById('s2Subheadline').textContent = `Every join below passed a statistical check (Fisher exact test) — real evidence of a strain switch, not noise.`;
       document.getElementById('s2GridSpanBadge').textContent = `${meta.reference_name} ${meta.coding_start}..${meta.coding_end} nt`;
 
       document.getElementById('s2KpiGrid').innerHTML = `
-        <div class="kpi-box"><div class="metric-caption">Verified Breakpoints</div><div class="metric-num">${allBps.length}</div><div class="metric-sub">${meta.is_segmented ? 'Inter-segment reassortments' : 'Coding template switches'}</div></div>
-        <div class="kpi-box"><div class="metric-caption">Mosaic Isolates</div><div class="metric-num">${nMosaicIso} / ${results.length}</div><div class="metric-sub">Basal trunk switches</div></div>
-        <div class="kpi-box"><div class="metric-caption">Median Plateau CI</div><div class="metric-num">${widths.length ? medWidth + ' nt' : '—'}</div><div class="metric-sub">Informative-SNP uncertainty</div></div>
-        <div class="kpi-box"><div class="metric-caption">Strongest Fisher Support</div><div class="metric-num small">${minP !== null ? minP.toExponential(2) : '—'}</div><div class="metric-sub">2&times;2 contingency exact p</div></div>
-        <div class="kpi-box"><div class="metric-caption">Top Donor Transition</div><div class="metric-num small">${escapeHtml(topPair)}</div><div class="metric-sub">${topPairN ? `${topPairN} junction(s)` : 'Clonal cohort'}</div></div>
+        <div class="kpi-box"><div class="metric-caption">Verified joins</div><div class="metric-num">${allBps.length}</div><div class="metric-sub">${meta.is_segmented ? 'segment swaps' : 'strain switches'}</div></div>
+        <div class="kpi-box"><div class="metric-caption">Mixed sequences</div><div class="metric-num">${nMosaicIso} / ${results.length}</div><div class="metric-sub">have at least one join</div></div>
+        <div class="kpi-box"><div class="metric-caption">Typical join fuzziness</div><div class="metric-num">${widths.length ? medWidth + ' nt' : '—'}</div><div class="metric-sub">uncertainty around the join point</div></div>
+        <div class="kpi-box"><div class="metric-caption">Strongest proof</div><div class="metric-num small">${minP !== null ? minP.toExponential(2) : '—'}</div><div class="metric-sub">Fisher exact p-value</div></div>
+        <div class="kpi-box"><div class="metric-caption">Most common switch</div><div class="metric-num small">${escapeHtml(topPair)}</div><div class="metric-sub">${topPairN ? `${topPairN} join(s)` : 'none'}</div></div>
       `;
 
       // Scalable Horizon SVG: 60-bin Density Histogram + Top-20 Grouped Architecture Tracks (<= 20 rows)
@@ -2914,7 +3011,7 @@
         });
         trackEntries = Array.from(grpMap.values()).sort((a, b) => b.count - a.count).slice(0, 20);
         document.getElementById('s2HorizonSubtitle').textContent =
-          `60-bin breakpoint density histogram paired with top ${trackEntries.length} recurring mosaic architectures across ${isoRows.length.toLocaleString()} mosaic isolates.`;
+          `Where joins cluster across ${isoRows.length.toLocaleString()} mixed sequences — top ${trackEntries.length} mix patterns shown.`;
       } else {
         trackEntries = isoRows.map(r => ({
           label: r.sequence_id,
@@ -2923,7 +3020,7 @@
           rep: r,
         }));
         document.getElementById('s2HorizonSubtitle').textContent =
-          '60-bin density histogram paired with mosaic isolate tracks. Click any junction marker to inspect the 2×2 Fisher contingency table.';
+          'Hot spots where sequences switch strain. Click a dot for the statistical check.';
       }
 
       const histH = 54;
@@ -2953,16 +3050,16 @@
       const binW = W / nBins;
       const histBaseY = 24 + histH;
       svgContent += `<line x1="0" y1="${histBaseY}" x2="${W}" y2="${histBaseY}" stroke="#9C9A94" stroke-width="0.8"/>`;
-      svgContent += `<text x="6" y="34" fill="#787670" font-size="8.5" font-family="Inter, sans-serif" font-weight="600">Breakpoint Density (${allBps.length} junctions, peak bin ${maxBin})</text>`;
+      svgContent += `<text x="6" y="34" fill="#787670" font-size="8.5" font-family="Inter, sans-serif" font-weight="600">Where joins cluster (${allBps.length} joins)</text>`;
       binCounts.forEach((cnt, bi) => {
         if (cnt > 0) {
           const bh = (cnt / maxBin) * (histH - 14);
-          svgContent += `<rect x="${(bi * binW + 0.8).toFixed(1)}" y="${(histBaseY - bh).toFixed(1)}" width="${Math.max(1.5, binW - 1.6).toFixed(1)}" height="${bh.toFixed(1)}" fill="#E04F16" opacity="0.82" rx="1"><title>Bin ${bi + 1}: ${cnt} breakpoint(s)</title></rect>`;
+          svgContent += `<rect x="${(bi * binW + 0.8).toFixed(1)}" y="${(histBaseY - bh).toFixed(1)}" width="${Math.max(1.5, binW - 1.6).toFixed(1)}" height="${bh.toFixed(1)}" fill="#E04F16" opacity="0.82" rx="1"><title>Bin ${bi + 1}: ${cnt} join(s)</title></rect>`;
         }
       });
 
       if (trackEntries.length === 0) {
-        svgContent += `<text x="${W / 2}" y="${topPad + 20}" fill="#787670" font-size="12.5" font-family="Inter, sans-serif" text-anchor="middle">All isolates in this cohort are clonal with zero verified basal breakpoints.</text>`;
+        svgContent += `<text x="${W / 2}" y="${topPad + 20}" fill="#787670" font-size="12.5" font-family="Inter, sans-serif" text-anchor="middle">No joins found — every sequence here is a single strain.</text>`;
       } else {
         trackEntries.forEach((entry, rowIdx) => {
           const y = topPad + rowIdx * rowH + 10;
@@ -3051,7 +3148,7 @@
           .filter(h => !q || `${h.locus} ${h.left} ${h.right} ${h.minPos} ${h.rep.r.sequence_id}`.toLowerCase().includes(q));
 
         document.getElementById('s2BpCount').textContent = `${hotspots.length} hotspot${hotspots.length === 1 ? '' : 's'} (${allBps.length} total)`;
-        thead.innerHTML = '<tr><th>Count</th><th>Locus</th><th>Transition</th><th>Position Range</th><th>Median CI Width</th><th>Best p_Fisher</th><th>Example Isolate</th></tr>';
+        thead.innerHTML = '<tr><th>Joins</th><th>Region</th><th>Switch</th><th>Where</th><th>Fuzziness</th><th>Best p</th><th>Example</th></tr>';
 
         const totalPages = Math.max(1, Math.ceil(hotspots.length / state.s2PageSize));
         state.s2Page = Math.min(Math.max(1, state.s2Page), totalPages);
@@ -3074,7 +3171,7 @@
                 </tr>
               `;
             }).join('')
-          : '<tr><td colspan="7" style="text-align:center;color:var(--ink-muted);padding:18px;">No breakpoint hotspots match filter.</td></tr>';
+          : '<tr><td colspan="7" style="text-align:center;color:var(--ink-muted);padding:18px;">No hot spots match the filter.</td></tr>';
         pager.innerHTML = renderPager(hotspots.length, state.s2Page, state.s2PageSize, 'setS2Page', 'setS2PageSize', [25, 50, 100]);
         return;
       }
@@ -3082,8 +3179,8 @@
       const filteredBps = allBps.filter(({ r, b, locus }) =>
         !q || `${r.sequence_id} ${b.left_trunk} ${b.right_trunk} ${b.bp_hxb2} ${locus}`.toLowerCase().includes(q)
       );
-      document.getElementById('s2BpCount').textContent = `${filteredBps.length.toLocaleString()} junction${filteredBps.length === 1 ? '' : 's'}`;
-      thead.innerHTML = '<tr><th>Isolate ID</th><th>Position</th><th>Transition</th><th>Plateau CI (Width)</th><th>2&times;2 Allelic SNP Counts</th><th>p_Fisher</th></tr>';
+      document.getElementById('s2BpCount').textContent = `${filteredBps.length.toLocaleString()} join${filteredBps.length === 1 ? '' : 's'}`;
+      thead.innerHTML = '<tr><th>Sequence</th><th>Where</th><th>Switch</th><th>Uncertainty</th><th>SNP evidence</th><th>p-value</th></tr>';
 
       const totalPages = Math.max(1, Math.ceil(filteredBps.length / state.s2PageSize));
       state.s2Page = Math.min(Math.max(1, state.s2Page), totalPages);
@@ -3100,7 +3197,7 @@
               <td class="num" style="color:var(--green);font-weight:700;">${b.p_fisher.toExponential(2)}</td>
             </tr>
           `).join('')
-        : '<tr><td colspan="6" style="text-align:center;color:var(--ink-muted);padding:18px;">No breakpoints verified in this cohort.</td></tr>';
+        : '<tr><td colspan="6" style="text-align:center;color:var(--ink-muted);padding:18px;">No joins found in this dataset.</td></tr>';
       pager.innerHTML = renderPager(filteredBps.length, state.s2Page, state.s2PageSize, 'setS2Page', 'setS2PageSize', [25, 50, 100]);
     }
 
@@ -3139,27 +3236,27 @@
         </tr>
       `).join('');
       const capNote = results.length > cap
-        ? `<p style="font-size:12px;color:var(--amber);margin:8px 0;">Showing first ${cap} of ${results.length.toLocaleString()} isolates in inline preview; use <strong>Export CSV Table</strong> or <strong>Export Full Audit JSON</strong> for the complete dataset.</p>`
+        ? `<p style="font-size:12px;color:var(--amber);margin:8px 0;">Showing first ${cap} of ${results.length.toLocaleString()} sequences — download the <strong>CSV</strong> or <strong>JSON</strong> for the complete list.</p>`
         : '';
       return `
         <p style="margin-bottom:6px;">
-          <strong>Pathogen Pack:</strong> ${escapeHtml(meta.pathogen_name)} (Reference <code>${escapeHtml(meta.reference_name)}</code>, ${meta.coding_start}..${meta.coding_end} nt) &bull;
-          <strong>Pack Version:</strong> <code>${escapeHtml(meta.pack_version || 'embedded')}</code> (${escapeHtml(meta.snapshot_date || '2026-11-16')}, Engine <code>${escapeHtml(meta.engine_version || '0.2')}</code>) &bull;
-          <strong>Isolates Screened:</strong> ${results.length.toLocaleString()} (from ${(resp.assembly?.raw_record_count || results.length).toLocaleString()} FASTA records) &bull;
-          <strong>Runtime:</strong> ${state.elapsedMs.toFixed(1)} ms
+          <strong>Virus:</strong> ${escapeHtml(meta.pathogen_name)} (reference <code>${escapeHtml(meta.reference_name)}</code>, ${meta.coding_start}..${meta.coding_end} nt) &bull;
+          <strong>Pack:</strong> <code>${escapeHtml(meta.pack_version || 'embedded')}</code> (${escapeHtml(meta.snapshot_date || '2026-11-16')}, engine <code>${escapeHtml(meta.engine_version || '0.2')}</code>) &bull;
+          <strong>Sequences:</strong> ${results.length.toLocaleString()} (from ${(resp.assembly?.raw_record_count || results.length).toLocaleString()} FASTA records) &bull;
+          <strong>Run time:</strong> ${state.elapsedMs.toFixed(1)} ms
         </p>
-        ${meta.curation_sources ? `<p style="font-size:12px;color:var(--ink-secondary);margin-bottom:10px;"><strong>Curation &amp; Certification Provenance:</strong> ${escapeHtml(meta.curation_sources)} &mdash; <em>${escapeHtml(meta.certification_criteria || '')}</em></p>` : ''}
-        <div style="font-size:12px;font-weight:700;text-transform:uppercase;color:var(--ink-secondary);margin:8px 0 4px;">Cohort Summary by Lineage &amp; Architecture (${groups.length} groups)</div>
+        ${meta.curation_sources ? `<p style="font-size:12px;color:var(--ink-secondary);margin-bottom:10px;"><strong>Reference sources:</strong> ${escapeHtml(meta.curation_sources)} &mdash; <em>${escapeHtml(meta.certification_criteria || '')}</em></p>` : ''}
+        <div style="font-size:12px;font-weight:700;text-transform:uppercase;color:var(--ink-secondary);margin:8px 0 4px;">Groups (${groups.length})</div>
         <div class="table-scroll" style="margin-bottom:12px;">
           <table>
-            <thead><tr><th>Count (Share)</th><th>Called Clade</th><th>Category</th><th>Coordinate Formula</th><th>Mean BPs</th></tr></thead>
+            <thead><tr><th>Count (share)</th><th>Label</th><th>Type</th><th>Mix formula</th><th>Avg joins</th></tr></thead>
             <tbody>${groupRows}</tbody>
           </table>
         </div>
         ${capNote}
         <div class="table-scroll">
           <table>
-            <thead><tr><th>Isolate</th><th>Called Clade</th><th>Category</th><th>Epidemiological Formula</th><th>Basal Formula</th><th>BPs</th></tr></thead>
+            <thead><tr><th>Sequence</th><th>Label</th><th>Type</th><th>Clinical label recipe</th><th>Deep ancestry recipe</th><th>Joins</th></tr></thead>
             <tbody>${rows}</tbody>
           </table>
         </div>
@@ -3171,7 +3268,7 @@
       if (!resp) return;
       const meta = resp.pack_meta;
       const compCount = meta.compendium?.length || meta.trunk_names?.length || 0;
-      document.getElementById('s3CompendiumTitle').textContent = `${PACK_LABELS[resp.active_pack] || meta.pathogen_name} Reference Compendium (${compCount} Lineages)`;
+      document.getElementById('s3CompendiumTitle').textContent = `The ${PACK_LABELS[resp.active_pack] || meta.pathogen_name} reference panel (${compCount} known strains)`;
       document.getElementById('s3DossierPreview').innerHTML = buildDossierSummaryHtml();
       window.renderAtlasTable();
     }
@@ -3247,10 +3344,10 @@
       let segHtml = '';
       if (iso && iso.segments && meta.is_segmented) {
         segHtml = `
-          <div style="font-size:12px;font-weight:700;text-transform:uppercase;color:var(--ink-secondary);margin:14px 0 6px;">Segmented Provenance (${iso.n_segments_present}/${iso.total_segments})</div>
+          <div style="font-size:12px;font-weight:700;text-transform:uppercase;color:var(--ink-secondary);margin:14px 0 6px;">Piece-by-piece assembly (${iso.n_segments_present}/${iso.total_segments})</div>
           <div class="table-scroll">
             <table>
-              <thead><tr><th>Seg</th><th>Ref Span</th><th>Mapped nt</th><th>Source Record Header</th></tr></thead>
+              <thead><tr><th>Piece</th><th>Map span</th><th>Mapped nt</th><th>Source file header</th></tr></thead>
               <tbody>
                 ${iso.segments.map(s => `
                   <tr>
@@ -3265,13 +3362,13 @@
           </div>
         `;
       }
-      openDrawer('STAGE 0 ISOLATE QA', r.sequence_id, `
+      openDrawer('SEQUENCE DETAIL', r.sequence_id, `
         <div class="kpi-grid" style="margin-bottom:14px;">
-          <div class="kpi-box"><div class="metric-caption">Mapped Coding nt</div><div class="metric-num">${r.mapped_coding_nt.toLocaleString()}</div></div>
-          <div class="kpi-box"><div class="metric-caption">Coordinate Span</div><div class="metric-num small">${r.hxb2_span_start}..${r.hxb2_span_end}</div></div>
+          <div class="kpi-box"><div class="metric-caption">Bases mapped</div><div class="metric-num">${r.mapped_coding_nt.toLocaleString()}</div></div>
+          <div class="kpi-box"><div class="metric-caption">Mapped span</div><div class="metric-num small">${r.hxb2_span_start}..${r.hxb2_span_end}</div></div>
         </div>
-        <div style="font-size:12.5px;margin-bottom:8px;"><strong>Alignment Mode:</strong> ${escapeHtml(r.alignment_mode)}</div>
-        <div style="font-size:12.5px;"><strong>Preliminary Call:</strong> <span class="badge">${escapeHtml(r.called_lineage)}</span> &mdash; <code>${escapeHtml(r.epidemiological_formula || r.descriptive_name)}</code></div>
+        <div style="font-size:12.5px;margin-bottom:8px;"><strong>How it aligned:</strong> ${escapeHtml(r.alignment_mode)}</div>
+        <div style="font-size:12.5px;"><strong>First guess:</strong> <span class="badge">${escapeHtml(r.called_lineage)}</span> &mdash; <code>${escapeHtml(r.epidemiological_formula || r.descriptive_name)}</code></div>
         ${segHtml}
       `);
     };
@@ -3296,21 +3393,21 @@
         `<span class="badge" style="margin:2px;">${escapeHtml(m.label)} (${escapeHtml(m.match_type)})</span>`
       ).join('');
 
-      openDrawer('STAGE 1 GUARDED CLADE & BARCODE FORENSICS', r.sequence_id, `
+      openDrawer('LABEL DETAIL', r.sequence_id, `
         <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;">
           <span class="badge blue">${escapeHtml(meta.pathogen_name)}</span>
           <span class="badge ${r.called_category === 'URF' ? 'orange' : 'green'}">${escapeHtml(r.called_lineage)} [${escapeHtml(r.called_category)}]</span>
           <span class="badge">${escapeHtml(r.locus_scope)}</span>
         </div>
         <div class="formula-strip">
-          <div><div class="metric-caption">Epidemiological Formula</div><div class="mono" style="font-size:12.5px;color:var(--orange);font-weight:700;">${escapeHtml(r.epidemiological_formula || r.descriptive_name)}</div></div>
-          <div><div class="metric-caption">Basal Trunk Formula</div><div class="mono" style="font-size:12.5px;font-weight:600;">${escapeHtml(r.basal_formula || r.descriptive_name)}</div></div>
+          <div><div class="metric-caption">Clinical label recipe</div><div class="mono" style="font-size:12.5px;color:var(--orange);font-weight:700;">${escapeHtml(r.epidemiological_formula || r.descriptive_name)}</div></div>
+          <div><div class="metric-caption">Deep ancestry recipe</div><div class="mono" style="font-size:12.5px;font-weight:600;">${escapeHtml(r.basal_formula || r.descriptive_name)}</div></div>
         </div>
         <div style="margin:10px 0;">
-          <div class="metric-caption" style="margin-bottom:4px;">Coordinate-Anchored Architecture</div>
+          <div class="metric-caption" style="margin-bottom:4px;">Genome map</div>
           ${renderBarcodeSVG(r.hxb2_barcode, meta, 520, true)}
         </div>
-        <div style="font-size:12px;font-weight:700;text-transform:uppercase;color:var(--ink-secondary);margin:14px 0 6px;">Guarded Clade Caller Verdict</div>
+        <div style="font-size:12px;font-weight:700;text-transform:uppercase;color:var(--ink-secondary);margin:14px 0 6px;">Why this label</div>
         <div class="card" style="padding:12px;background:var(--bg-subtle);margin-bottom:12px;">
           ${sup ? `
             <div class="mono" style="font-size:12px;">
@@ -3318,10 +3415,10 @@
               <div><strong>Net Stem SNP Margin:</strong> ${sup.net_stem_snps >= 0 ? '+' : ''}${sup.net_stem_snps} (Binomial p = ${sup.p_value.toExponential(2)})</div>
               <div style="margin-top:4px;color:var(--ink-secondary);"><strong>Guard Diagnostic:</strong> ${escapeHtml(sup.note)}</div>
             </div>
-          ` : '<div class="mono" style="font-size:12px;">URF fallback / basal deconvolution active.</div>'}
+          ` : '<div class="mono" style="font-size:12px;">No confident match — showing best-guess pieces.</div>'}
         </div>
-        ${matchesHtml ? `<div style="margin-bottom:12px;"><div class="metric-caption" style="margin-bottom:4px;">Compendium Matches</div>${matchesHtml}</div>` : ''}
-        <div style="font-size:12px;font-weight:700;text-transform:uppercase;color:var(--ink-secondary);margin:10px 0 6px;">Basal Deconvolution Segments (${r.n_segments})</div>
+        ${matchesHtml ? `<div style="margin-bottom:12px;"><div class="metric-caption" style="margin-bottom:4px;">Closest known strains</div>${matchesHtml}</div>` : ''}
+        <div style="font-size:12px;font-weight:700;text-transform:uppercase;color:var(--ink-secondary);margin:10px 0 6px;">The pieces (${r.n_segments})</div>
         <div class="table-scroll">
           <table>
             <thead><tr><th>#</th><th>Trunk</th><th>Gene/Seg</th><th>Span</th><th>Identity</th></tr></thead>
@@ -3329,7 +3426,7 @@
           </table>
         </div>
         <div style="margin-top:10px;">
-          <div class="metric-caption">CI-Bracketed Coordinate Barcode</div>
+          <div class="metric-caption">Map with uncertainty</div>
           <div class="mono" style="font-size:11px;word-break:break-all;background:var(--bg-subtle);padding:8px;border-radius:6px;">${escapeHtml(r.ci_bracketed_barcode)}</div>
         </div>
       `);
@@ -3347,16 +3444,16 @@
       const b = r?.breakpoints?.[bIdx];
       if (!r || !b) return;
       const meta = resp.pack_meta;
-      openDrawer('STAGE 2 FISHER 2×2 BREAKPOINT AUDIT', `${r.sequence_id} @ ${b.bp_hxb2}`, `
+      openDrawer('JOIN DETAIL', `${r.sequence_id} @ ${b.bp_hxb2}`, `
         <div class="kpi-grid" style="margin-bottom:14px;">
-          <div class="kpi-box"><div class="metric-caption">Junction Position</div><div class="metric-num small">${escapeHtml(meta.reference_name)} ${b.bp_hxb2}</div></div>
-          <div class="kpi-box"><div class="metric-caption">Fisher Exact p</div><div class="metric-num small" style="color:var(--green);">${b.p_fisher.toExponential(3)}</div></div>
+          <div class="kpi-box"><div class="metric-caption">Join position</div><div class="metric-num small">${escapeHtml(meta.reference_name)} ${b.bp_hxb2}</div></div>
+          <div class="kpi-box"><div class="metric-caption">Fisher exact p</div><div class="metric-num small" style="color:var(--green);">${b.p_fisher.toExponential(3)}</div></div>
         </div>
         <div style="margin-bottom:12px;">
           <span class="badge orange">${escapeHtml(b.left_trunk)} → ${escapeHtml(b.right_trunk)}</span>
-          <span class="badge blue">Plateau CI: ${b.ci_hxb2_low}–${b.ci_hxb2_high} (${b.ci_width_nt} nt)</span>
+          <span class="badge blue">Uncertainty: ${b.ci_hxb2_low}–${b.ci_hxb2_high} (${b.ci_width_nt} nt)</span>
         </div>
-        <div style="font-size:12px;font-weight:700;text-transform:uppercase;color:var(--ink-secondary);margin-bottom:6px;">Informative Allelic Contingency Table</div>
+        <div style="font-size:12px;font-weight:700;text-transform:uppercase;color:var(--ink-secondary);margin-bottom:6px;">The SNP evidence</div>
         <div class="table-scroll">
           <table>
             <thead>
@@ -3369,7 +3466,7 @@
           </table>
         </div>
         <p style="font-size:12px;color:var(--ink-secondary);margin-top:12px;">
-          A candidate crossover is accepted only after passing the complexity penalty threshold γ, minimum flanking span length, minimum diagnostic SNP count per side, and Bonferroni-controlled two-sided Fisher exact verification.
+          A switch is only called when the SNP counts above are much stronger than chance — the smaller the p-value, the more confident the join.
         </p>
         <div style="margin-top:12px;">
           <button class="btn sm" onclick="openStage1Drawer(${rIdx})">Inspect Full Isolate Barcode →</button>
@@ -3389,22 +3486,33 @@
     };
 
     window.openGuideDrawer = function() {
-      openDrawer('EGGMAN DOCUMENTATION & ALGORITHM GUIDE', 'Multi-Pathogen Coordinate Deconvolution', `
-        <h3 style="font-size:14px;margin-bottom:6px;">1. Separating Coordinates from Clade Labels</h3>
+      openDrawer('HOW IT WORKS', 'EGGMAN, in more detail', `
+        <h3 style="font-size:14px;margin-bottom:6px;">1. What it does</h3>
         <p style="font-size:12.5px;color:var(--ink-secondary);margin-bottom:12px;">
-          Every sequence receives both an invariant physical barcode projected onto clean non-mosaic basal trunks (e.g. <code>NAm_B313[EA1:PA+HA+NA+MP]</code> or <code>G0[A1:gp41..nef]</code>) and a statistical Tier-2 Guarded Clade Call that falls back cleanly to <code>URF</code> unless all 4 falsification gates pass.
+          Each sequence is laid over a fixed reference map. Every stretch of genome gets a strain label, so a mixed virus reads like a recipe — e.g. <code>G0[A1:gp41..nef]</code> means &ldquo;mostly G0, with the gp41–nef stretch from A1&rdquo;. When the evidence is weak, EGGMAN says <code>URF</code> (&ldquo;uncatalogued recombinant form&rdquo;) instead of guessing.
         </p>
-        <h3 style="font-size:14px;margin-bottom:6px;">2. Segmented Influenza A Assembly</h3>
+        <h3 style="font-size:14px;margin-bottom:6px;">2. The four steps</h3>
+        <ol style="font-size:12.5px;color:var(--ink-secondary);padding-left:18px;margin-bottom:12px;">
+          <li style="margin-bottom:6px;"><strong>Check</strong> — is the data usable? We guess the virus and map every sequence onto one reference map.</li>
+          <li style="margin-bottom:6px;"><strong>Label</strong> — each piece of each genome gets a strain label, or an honest &ldquo;unknown&rdquo;.</li>
+          <li style="margin-bottom:6px;"><strong>Joins</strong> — every spot where the label switches gets a statistical check.</li>
+          <li><strong>Keep</strong> — download the report, the table, or the rebuilt genomes.</li>
+        </ol>
+        <h3 style="font-size:14px;margin-bottom:6px;">3. Flu is special</h3>
         <p style="font-size:12.5px;color:var(--ink-secondary);margin-bottom:12px;">
-          Dropping 8 individual NCBI/GISAID RNA segment FASTA files (or one multi-FASTA containing separate PB2..NS records) automatically groups records by strain key or disjoint segment 15-mer signatures, trims non-coding tails cleanly via banded NW alignment, and prevents cross-segment coordinate bleed. Note: genotype C2.1 is catalogued in the IAV compendium, but the guarded caller conservatively returns URF when EA2/EA1 surface segments share fewer than 8 diagnostic stem SNPs.
+          Influenza A comes in 8 separate pieces (PB2 through NS). Drop 8 segment files — even scrambled — and EGGMAN figures out which pieces belong to the same virus. Swapping whole pieces is normal for flu, so each piece gets its own label rather than searching for breaks inside them.
         </p>
-        <h3 style="font-size:14px;margin-bottom:6px;">3. Auto-Detection &amp; Pack Provenance</h3>
+        <h3 style="font-size:14px;margin-bottom:6px;">4. How joins are checked</h3>
         <p style="font-size:12.5px;color:var(--ink-secondary);margin-bottom:12px;">
-          Four native pathogen packs are compiled directly into the WebAssembly binary (rebuilt automatically on push to <code>main</code> by GitHub Actions): <strong>HIV-1 Group M</strong> (HXB2, <code>2026.11-lanl2023</code>), <strong>Influenza A 8-Seg H5N1</strong> (<code>2026.11-genoflu-sra</code>), <strong>SARS-CoV-2</strong> (Wuhan-Hu-1, <code>2026.11-pango-sc2</code>), and <strong>Wildlife Sarbecoviruses</strong> (<code>2026.11-wildlife-sarbeco</code>).
+          A join is only called when mutations on either side of it clearly favor different strains — a Fisher exact test makes the cut, not a heuristic guess. The &ldquo;fine-tuning&rdquo; panel controls how much evidence is needed.
         </p>
-        <h3 style="font-size:14px;margin-bottom:6px;">4. Companion Resources</h3>
+        <h3 style="font-size:14px;margin-bottom:6px;">5. The reference panels</h3>
+        <p style="font-size:12.5px;color:var(--ink-secondary);margin-bottom:12px;">
+          Four curated panels ship inside the app: <strong>HIV-1 Group M</strong> (HXB2), <strong>Influenza A</strong> (8 segments), <strong>SARS-CoV-2</strong> (Wuhan-Hu-1), and <strong>wildlife sarbecoviruses</strong>. Everything runs locally in WebAssembly — sequences never leave your browser.
+        </p>
+        <h3 style="font-size:14px;margin-bottom:6px;">6. More</h3>
         <ul style="font-size:12.5px;color:var(--ink-secondary);padding-left:18px;">
-          <li>Source code &amp; native Rust CLI: <a href="https://github.com/veg/eggman" target="_blank">github.com/veg/eggman</a></li>
+          <li>Source code &amp; Rust CLI: <a href="https://github.com/veg/eggman" target="_blank">github.com/veg/eggman</a></li>
           <li>Tree-free molecular clock tool <code>ChronAeon</code>: <a href="https://zenodo.org/records/23560893" target="_blank">Zenodo 23560893</a></li>
         </ul>
       `);
@@ -3443,7 +3551,7 @@
       if (curIdx < stages.length - 1) {
         const nxt = document.createElement('button');
         nxt.className = 'coach-next-btn';
-        nxt.textContent = `Next Step →`;
+        nxt.textContent = `Next →`;
         nxt.onclick = () => goView(stages[curIdx + 1]);
         actionsEl.appendChild(nxt);
       }
@@ -3477,16 +3585,28 @@
       await executeScreening(text, 'stage0');
     };
 
-    window.launchShowcase = async function(fileUrl, forceMode) {
-      const prevMode = state.launchMode;
-      state.launchMode = forceMode;
-      state.walkthroughActive = false;
-      const resp = await fetch(fileUrl);
-      if (resp.ok) {
-        const text = await resp.text();
-        await executeScreening(text, forceMode === 'auto' ? 'stage1' : 'stage0');
-      }
-      state.launchMode = prevMode;
+    // All data sources stage input — upload, paste, fetch, examples all land
+    // in the same stagedFasta slot with a visible indicator. Nothing runs until
+    // the user picks a run mode; the mode buttons are the run triggers.
+    window.stageInput = function(text, label) {
+      const cleaned = (text || '').trim();
+      if (!cleaned) return;
+      state.stagedFasta = cleaned;
+      state.stagedLabel = label || 'sequences';
+      const n = (cleaned.match(/^>/gm) || []).length;
+      const box = document.getElementById('stagedBox');
+      box.classList.remove('hidden');
+      box.innerHTML = `✓ <strong>${escapeHtml(state.stagedLabel)}</strong> — ${n.toLocaleString()} sequence(s) · ${(cleaned.length / 1024).toFixed(0)} KB ready.<br>Pick a run mode on the left to start.`;
+      document.querySelectorAll('.mode-opt').forEach(m => m.classList.add('armed'));
+      box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    };
+
+    window.useExample = async function(idx) {
+      const c = CURATED_SHOWCASES[idx];
+      if (!c) return;
+      closeModals();
+      const resp = await fetch(c.file);
+      if (resp.ok) stageInput(await resp.text(), `example: ${c.title}`);
     };
 
     // =========================================================================
@@ -3496,13 +3616,14 @@
       document.getElementById('pasteModal').classList.add('hidden');
       document.getElementById('streamModal').classList.add('hidden');
       document.getElementById('preflightModal').classList.add('hidden');
+      document.getElementById('examplesModal').classList.add('hidden');
     };
 
     window.submitPasteModal = function() {
       const txt = document.getElementById('pasteTextarea').value.trim();
       if (!txt) return;
       closeModals();
-      maybePreflightAndRun(txt);
+      stageInput(txt, 'pasted sequences');
     };
 
     let currentStreamTab = 'accessions';
@@ -3522,7 +3643,7 @@
       const msgEl = document.getElementById('streamStatusMsg');
       const btn = document.getElementById('btnFetchNow');
       btn.disabled = true;
-      msgEl.textContent = 'Streaming FASTA over HTTPS…';
+      msgEl.textContent = 'Fetching sequences…';
       try {
         let fastaText = '';
         if (currentStreamTab === 'accessions') {
@@ -3550,7 +3671,7 @@
         msgEl.textContent = '';
         btn.disabled = false;
         closeModals();
-        maybePreflightAndRun(fastaText);
+        stageInput(fastaText, currentStreamTab === 'accessions' ? 'GenBank fetch' : 'fetched FASTA');
       } catch (err) {
         msgEl.textContent = `Fetch error: ${err && err.message ? err.message : err}`;
         btn.disabled = false;
@@ -3625,7 +3746,7 @@
     window.downloadHTMLDossier = function() {
       if (!state.response) return;
       const body = buildDossierSummaryHtml();
-      const html = `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><title>EGGMAN Dossier (${escapeHtml(state.response.active_pack)})</title><style>body{font-family:-apple-system,BlinkMacSystemFont,"Inter",sans-serif;max-width:1100px;margin:32px auto;padding:0 20px;color:#141413;background:#F6F5F1;}table{width:100%;border-collapse:collapse;background:#fff;margin-top:12px;}th,td{border:1px solid #DFDCD4;padding:8px;text-align:left;font-size:12px;}th{background:#EFECE6;}</style></head><body><h1>EGGMAN Coordinate Deconvolution Dossier</h1>${body}</body></html>`;
+      const html = `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><title>EGGMAN Dossier (${escapeHtml(state.response.active_pack)})</title><style>body{font-family:-apple-system,BlinkMacSystemFont,"Inter",sans-serif;max-width:1100px;margin:32px auto;padding:0 20px;color:#141413;background:#F6F5F1;}table{width:100%;border-collapse:collapse;background:#fff;margin-top:12px;}th,td{border:1px solid #DFDCD4;padding:8px;text-align:left;font-size:12px;}th{background:#EFECE6;}</style></head><body><h1>EGGMAN analysis report</h1>${body}</body></html>`;
       downloadBlob(html, `eggman_${state.response.active_pack}_dossier.html`, 'text/html');
     };
 
@@ -3637,39 +3758,37 @@
       if (!files.length) return;
       const texts = await Promise.all(files.map(f => f.text()));
       const combined = texts.map(t => t.trim()).filter(Boolean).join('\n');
-      maybePreflightAndRun(combined);
+      stageInput(combined, files.length === 1 ? files[0].name : `${files.length} files`);
     }
 
     function wireUI() {
-      renderExamplesGrid();
+      renderExamplesModal();
       document.getElementById('brandHome').onclick = () => goView('landing');
       document.querySelectorAll('.stage-step[data-view]').forEach(btn => {
         btn.onclick = () => goView(btn.dataset.view);
       });
 
-      document.getElementById('topbarPackSelect').onchange = (e) => setSelectedPack(e.target.value);
       document.querySelectorAll('#landingPackPills .seg-pill').forEach(btn => {
-        btn.onclick = () => setSelectedPack(btn.dataset.pack);
+        btn.onclick = () => applyPack(btn.dataset.pack);
       });
 
       document.querySelectorAll('#segModePills .seg-pill').forEach(btn => {
         btn.onclick = () => window.setSegMode(btn.dataset.segmode);
       });
 
-      document.getElementById('modeOptStep').onclick = () => {
-        state.launchMode = 'step';
-        document.getElementById('modeOptStep').classList.add('active');
-        document.getElementById('modeOptAuto').classList.remove('active');
+      // The mode buttons are the run triggers: pick a mode, and if data is
+      // staged the analysis starts with it (preflight warning if it's big).
+      window.setRunMode = function(mode) {
+        state.launchMode = mode;
+        document.getElementById('modeOptStep').classList.toggle('active', mode === 'step');
+        document.getElementById('modeOptAuto').classList.toggle('active', mode === 'auto');
+        if (state.stagedFasta) maybePreflightAndRun(state.stagedFasta);
       };
-      document.getElementById('modeOptAuto').onclick = () => {
-        state.launchMode = 'auto';
-        document.getElementById('modeOptAuto').classList.add('active');
-        document.getElementById('modeOptStep').classList.remove('active');
-      };
+      document.getElementById('modeOptStep').onclick = () => setRunMode('step');
+      document.getElementById('modeOptAuto').onclick = () => setRunMode('auto');
 
       const fileIn = document.getElementById('globalFileInput');
       fileIn.onchange = (e) => readMultipleFastaFiles(e.target.files);
-      document.getElementById('btnTopUpload').onclick = () => fileIn.click();
       document.getElementById('btnChooseFiles').onclick = (e) => { e.stopPropagation(); fileIn.click(); };
 
       const dz = document.getElementById('landingDropzone');
@@ -3684,11 +3803,9 @@
         readMultipleFastaFiles(e.dataTransfer.files);
       };
 
-      document.getElementById('btnTopPaste').onclick = () => document.getElementById('pasteModal').classList.remove('hidden');
       document.getElementById('btnOpenPaste').onclick = (e) => { e.stopPropagation(); document.getElementById('pasteModal').classList.remove('hidden'); };
-      document.getElementById('btnTopStream').onclick = () => document.getElementById('streamModal').classList.remove('hidden');
       document.getElementById('btnOpenStream').onclick = (e) => { e.stopPropagation(); document.getElementById('streamModal').classList.remove('hidden'); };
-      document.getElementById('btnTopTour').onclick = () => startGuidedTour('flu_stitch');
+      document.getElementById('btnOpenExamples').onclick = (e) => { e.stopPropagation(); document.getElementById('examplesModal').classList.remove('hidden'); };
       document.getElementById('btnTopGuide').onclick = () => openGuideDrawer();
 
       document.getElementById('s0SegSearch').oninput = (e) => { state.s0SegSearch = e.target.value; state.s0SegPage = 1; renderStage0Tables(); };
@@ -3704,36 +3821,62 @@
       });
     }
 
-    function renderExamplesGrid() {
-      const grid = document.getElementById('examplesGrid');
-      grid.innerHTML = CURATED_SHOWCASES.map(c => `
-        <div class="example-card">
-          <div>
-            <div class="ex-top">
-              <span class="badge ${c.badgeClass}">${escapeHtml(c.badge)}</span>
-              <span class="badge">${escapeHtml(c.gridLabel)}</span>
-            </div>
-            <div class="ex-title">${escapeHtml(c.title)}</div>
+    // Example datasets live behind a modal — they're a data choice, so they
+    // sit next to Paste/Fetch in the dropzone rather than owning landing space.
+    // Sequence/nt counts are parsed from the file itself, lazily on first expand.
+    const exStatsCache = {};
+    async function fillExampleStats(detailsEl) {
+      const file = detailsEl.dataset.file;
+      const out = detailsEl.querySelector('[data-stats]');
+      try {
+        if (!exStatsCache[file]) {
+          const txt = await (await fetch(file)).text();
+          let n = 0, nt = 0;
+          txt.split('\n').forEach(l => {
+            if (l.startsWith('>')) n++;
+            else nt += l.replace(/[^A-Za-z\-]/g, '').length;
+          });
+          exStatsCache[file] = { n, nt };
+        }
+        const { n, nt } = exStatsCache[file];
+        out.textContent = `${n.toLocaleString()} sequences · ${nt.toLocaleString()} nt`;
+      } catch (e) {
+        out.textContent = '';
+      }
+    }
+
+    function renderExamplesModal() {
+      document.getElementById('examplesList').innerHTML = CURATED_SHOWCASES.map((c, idx) => `
+        <details class="ex-row" data-file="${c.file}">
+          <summary>
+            <span class="badge ${c.badgeClass}">${escapeHtml(c.badge)}</span>
+            <span class="ex-row-title">${escapeHtml(c.title)}</span>
+            <span class="ex-row-label">${escapeHtml(c.gridLabel)}</span>
+          </summary>
+          <div class="ex-row-body">
             <div class="ex-desc">${escapeHtml(c.desc)}</div>
+            <div class="ex-callout">${escapeHtml(c.callout)}</div>
+            <div class="ex-stats mono" data-stats>counting…</div>
+            <div class="ex-actions">
+              <button class="btn primary sm" style="flex:1;" onclick="useExample(${idx})">Use this data</button>
+            </div>
           </div>
-          <div class="ex-callout">${escapeHtml(c.callout)}</div>
-          <div class="ex-actions">
-            <button class="btn sm" style="flex:1;" onclick="launchShowcase('${c.file}', 'step')">Step-by-Step</button>
-            <button class="btn primary sm" style="flex:1;" onclick="launchShowcase('${c.file}', 'auto')">⚡ Full Auto</button>
-          </div>
-        </div>
+        </details>
       `).join('');
+      document.querySelectorAll('#examplesList .ex-row').forEach(d => {
+        d.addEventListener('toggle', () => { if (d.open) fillExampleStats(d); });
+      });
     }
 
     async function boot() {
       wireUI();
-      setLed('', 'Booting WASM…');
+      setLed('', 'Loading…');
       spawnWorker();
       try {
         const res = await callWasm('init', {});
         state.packMetas = res.metas || {};
         state.wasmReady = true;
-        setLed('ready', '4 Packs Ready');
+        setLed('ready', 'Ready');
       } catch (err) {
         setLed('error', 'WASM Boot Failed');
         console.error(err);
